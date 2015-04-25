@@ -126,7 +126,6 @@ void flac_decoder::error_callback(
 bool flac_decoder::decode(FILE *outf)
 {
 	f = outf;
-	bool decode_status = process_until_end_of_stream();
-	return decode_status;
+	return process_until_end_of_stream();
 }
 
