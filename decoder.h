@@ -5,12 +5,10 @@
 #include <cstdio>
 
 class decoder {
-protected:
-	FILE *file;
 public:
-	decoder();
-	virtual ~decoder(void);
-	virtual bool decode(FILE *) = 0; // Output file
+	decoder() { }
+	virtual ~decoder(void) { }
+	virtual bool decode(FILE *) = 0; // outfile
 };
 
 #endif /* end of include guard: DECODER_BHIETHBX */

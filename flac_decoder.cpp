@@ -1,9 +1,13 @@
 #include "flac_decoder.h"
+#include <cerrno>
+#include <cstdlib>
 
+#if 0
 static FLAC__uint64 total_samples = 0;
 static unsigned sample_rate = 0;
 static unsigned channels = 0;
 static unsigned bps = 0;
+#endif
 
 static bool write_little_endian_uint16(FILE *f, FLAC__uint16 x)
 {
@@ -28,14 +32,20 @@ static bool write_little_endian_uint32(FILE *f, FLAC__uint32 x)
 	;
 }
  
-flac_decoder::flac_decoder(FILE *f) : FLAC::Decoder::File()
+flac_decoder::flac_decoder(FILE *lol) : FLAC::Decoder::File(), file(lol),
+		total_samples(0), bps(0), channels(0), sample_rate(0)
 {
-	file = f;
+	FLAC__StreamDecoderInitStatus init_status = init(file);
+	if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK) {
+		exit(EXIT_FAILURE);
+		// throw exception;
+	}
 }
 
 flac_decoder::~flac_decoder(void)
 {
 	fclose(file);
+	fclose(f);
 }
 
 ::FLAC__StreamDecoderWriteStatus flac_decoder::write_callback(
@@ -46,7 +56,7 @@ flac_decoder::~flac_decoder(void)
 	size_t i;
 
 	if(total_samples == 0) { // FIXME: throw
-		fprintf(stderr, "ERROR: this example only works for FLAC files that have a total_samples count in STREAMINFO\n");
+		fprintf(stderr, "ERROR: this example only works for FLAC fs that have a total_samples count in STREAMINFO\n");
 		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 	}
 	if(channels != 2 || bps != 16) {
@@ -57,18 +67,18 @@ flac_decoder::~flac_decoder(void)
 	/* write WAVE header before we write the first frame */
 	if(frame->header.number.sample_number == 0) {
 		if(
-				fwrite("RIFF", 1, 4, file) < 4 ||
-				!write_little_endian_uint32(file, total_size + 36) ||
-				fwrite("WAVEfmt ", 1, 8, file) < 8 ||
-				!write_little_endian_uint32(file, 16) ||
-				!write_little_endian_uint16(file, 1) ||
-				!write_little_endian_uint16(file, (FLAC__uint16)channels) ||
-				!write_little_endian_uint32(file, sample_rate) ||
-				!write_little_endian_uint32(file, sample_rate * channels * (bps/8)) ||
-				!write_little_endian_uint16(file, (FLAC__uint16)(channels * (bps/8))) || /* block align */
-				!write_little_endian_uint16(file, (FLAC__uint16)bps) ||
-				fwrite("data", 1, 4, file) < 4 ||
-				!write_little_endian_uint32(file, total_size)
+				fwrite("RIFF", 1, 4, f) < 4 ||
+				!write_little_endian_uint32(f, total_size + 36) ||
+				fwrite("WAVEfmt ", 1, 8, f) < 8 ||
+				!write_little_endian_uint32(f, 16) ||
+				!write_little_endian_uint16(f, 1) ||
+				!write_little_endian_uint16(f, (FLAC__uint16)channels) ||
+				!write_little_endian_uint32(f, sample_rate) ||
+				!write_little_endian_uint32(f, sample_rate * channels * (bps/8)) ||
+				!write_little_endian_uint16(f, (FLAC__uint16)(channels * (bps/8))) || /* block align */
+				!write_little_endian_uint16(f, (FLAC__uint16)bps) ||
+				fwrite("data", 1, 4, f) < 4 ||
+				!write_little_endian_uint32(f, total_size)
 		  ) {
 			fprintf(stderr, "ERROR: write error\n");
 			return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
@@ -78,8 +88,8 @@ flac_decoder::~flac_decoder(void)
 	/* write decoded PCM samples */
 	for(i = 0; i < frame->header.blocksize; i++) {
 		if(
-				!write_little_endian_int16(file, (FLAC__int16)buffer[0][i]) ||  /* left channel */
-				!write_little_endian_int16(file, (FLAC__int16)buffer[1][i])     /* right channel */
+				!write_little_endian_int16(f, (FLAC__int16)buffer[0][i]) ||  /* left channel */
+				!write_little_endian_int16(f, (FLAC__int16)buffer[1][i])     /* right channel */
 		  ) {
 			fprintf(stderr, "ERROR: write error\n");
 			return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
@@ -111,5 +121,12 @@ void flac_decoder::error_callback(
 {
 	// TODO throw instead
 	fprintf(stderr, "Got error callback: %s\n", FLAC__StreamDecoderErrorStatusString[status]);
+}
+
+bool flac_decoder::decode(FILE *outf)
+{
+	f = outf;
+	bool decode_status = process_until_end_of_stream();
+	return decode_status;
 }
 

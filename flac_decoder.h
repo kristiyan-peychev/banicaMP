@@ -5,6 +5,8 @@
 #include "decoder.h"
 #include "FLAC++/decoder.h" // FIXME to local header
 
+// TODO: test
+
 class flac_decoder : public decoder, public FLAC::Decoder::File {
 public:
 	flac_decoder(FILE *);
@@ -19,6 +21,10 @@ private:
 	flac_decoder &operator=(const flac_decoder &);
 private:
 	FILE *file;
+	FILE *f; // outfile
+	FLAC__uint64 total_samples;
+	unsigned sample_rate;
+	unsigned channels;
+	unsigned bps;
 };
-
 #endif /* end of include guard: FLAC_DECODER_PEOMBWH */
