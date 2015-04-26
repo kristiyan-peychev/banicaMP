@@ -58,7 +58,7 @@ static enum mad_flow error(void *data,
 	return MAD_FLOW_CONTINUE;
 }
 
-enum mad_flow output(void *data, 
+static enum mad_flow output(void *data, 
 					const struct mad_header *header,
 					struct mad_pcm *pcm)
 {
