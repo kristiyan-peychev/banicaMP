@@ -1,22 +1,26 @@
-#include "MPEG_decoder.h"
-#include "FLAC_decoder.h"
+//#include "../MPEG_decoder.h"
+#include "../FLAC_decoder.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstdlib>
 #include <unistd.h>
 #include <fcntl.h>
 
+#define SONG_PATH "/falos/05 - Catgroove.flac"
+#define OUT_PATH "/home/kawaguchi/test.wav"
+
 int main(int argc, const char *argv[]) {
 	FILE *file, *KOR;
-	file = fopen("/falos/14 East.mp3", "r");
-	KOR = fopen("/home/kawaguchi/test.wav", "w");
+	file = fopen(SONG_PATH, "r");
+	KOR = fopen(OUT_PATH, "w");
 	/*
 	int fd1 = open("/home/kawaguchi/14 East.mp3", O_RDONLY);
 	int fd2 = open("/home/kawaguchi/test.wav", O_WRONLY);
 	file = fdopen(fd1, "r");
 	KOR = fdopen(fd2, "w");
 	*/
-	MPEG_decoder test(file);
+	//MPEG_decoder test(file);
+	flac_decoder test(file);
 	test.decode(KOR);
 	/*
 	fprintf(KOR, "TEST\n");
@@ -28,8 +32,8 @@ int main(int argc, const char *argv[]) {
 	}
 	fprintf(stdout, "%d\n", c);
 	*/
-	fclose(KOR);
-	fclose(file);
+	//fclose(KOR);
+	//fclose(file);
 return 0;
 }
 

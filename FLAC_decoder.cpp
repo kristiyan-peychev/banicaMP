@@ -44,8 +44,8 @@ flac_decoder::flac_decoder(FILE *lol) : FLAC::Decoder::File(), file(lol),
 
 flac_decoder::~flac_decoder(void)
 {
-	fclose(file);
-	fclose(f);
+	//fclose(file);
+	//fclose(f);
 }
 
 ::FLAC__StreamDecoderWriteStatus flac_decoder::write_callback(
