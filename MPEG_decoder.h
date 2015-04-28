@@ -12,12 +12,13 @@ struct buffer {
 
 struct uberbuff {
 	buffer *buf;
-	FILE *f;
+	FILE *f, *rd;
+	uberbuff(buffer *b, FILE *ff, FILE *sf) :
+				buf(b), f(ff), rd(sf) { }
 };
 
 class MPEG_decoder : public decoder {
 	FILE *file; // input
-	FILE *f; // output
 public:
 	MPEG_decoder(FILE *);
 	~MPEG_decoder(void);
