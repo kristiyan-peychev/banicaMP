@@ -1,9 +1,6 @@
 #include "../song.h"
 #include <cstdio>
-#include <cerrno>
-#include <cstdlib>
-#include <unistd.h>
-#include <fcntl.h>
+
 
 #define MP3_SONG_PATH "/home/nikolay/ACDC - Whole Lotta Rosie.mp3"
 #define FLAC_SONG_PATH "/home/nikolay/31. Jinsei wa Belt Conveyor no Youni Nagareru.flac"
