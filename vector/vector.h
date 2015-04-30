@@ -12,9 +12,10 @@ class vector {
 
     void copy(const vector &o);
     void destroy();
-    void resize();
+    void resize(bool=true);
+    
 public:
-    vector(int cap=4);
+    vector(int=4);
     vector(const vector &o);
     vector& operator= (const vector &o);
     ~vector();
@@ -23,7 +24,10 @@ public:
     int capacity() const {return m_capacity;}
 
     void push_back(const T&);
-    int pop_back();
+    void pop_back();
+    void remove(int);
+    void insert(const T&, int);
+
     T& operator[](int);
 
 
