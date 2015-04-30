@@ -1,5 +1,5 @@
 #include "song.h"
-#include "extensions.h"
+#include "extensions.hpp"
 
 song::song(const char* path)
 {

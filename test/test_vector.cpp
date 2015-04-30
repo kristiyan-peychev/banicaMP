@@ -1,4 +1,4 @@
-#include "vector.cpp"
+#include "../vector/vector.hpp"
 #include <cstdio>
 
 int main(){
