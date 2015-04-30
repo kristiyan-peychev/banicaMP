@@ -1,32 +1,48 @@
 #ifndef SONG_H
 #define SONG_H
 
-#include <string>
+#include <cstring>
+#include <cstdio>
 
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 #include <taglib/tpropertymap.h>
 
+#include "decoder.h"
+
 struct song_info{
 	TagLib::Tag *tag;
 	TagLib::AudioProperties *properties;
 
-	song_info(std::string path)
+	song_info(const char* path)
 	{
-		TagLib::FileRef f(path.c_str());
+		TagLib::FileRef f(path);
 		tag = f.tag();
 		properties = f.audioProperties();
 	}
 };
 
+
 class song{
 private:
+    //I know naming sux
+    static const int NumOfSignatures = 4;
+    static const char* Signatures[];
+    static const char* Extensions[];
+    static const int Sizes[];
+
+
 	song_info* info;
-	std::string path;
+	char* path;
+	const char* extension;
+	decoder* dec;
+
+    const char* get_file_extension();
 public:
-	song(std::string);
+	song(const char*);
 	~song();
-	std::string get_path() const;
+	const char* get_path() const;
+    const char* get_extension() const;
 	const song_info* get_info() const;
 };
 
