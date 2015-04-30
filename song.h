@@ -8,7 +8,7 @@
 #include <taglib/tag.h>
 #include <taglib/tpropertymap.h>
 
-#include "decoder.h"
+#include "decode/decoder.h"
 
 struct song_info{
 	TagLib::Tag *tag;

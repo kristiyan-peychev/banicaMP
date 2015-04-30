@@ -1,12 +1,12 @@
 //#include "../MPEG_decoder.h"
-#include "../FLAC_decoder.h"
+#include "../decode/FLAC_decoder.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstdlib>
 #include <unistd.h>
 #include <fcntl.h>
 
-#define SONG_PATH "/falos/05 - Catgroove.flac"
+#define SONG_PATH "/falos/11 - Nosferatu (Original Version).flac"
 #define OUT_PATH "/home/kawaguchi/test.wav"
 
 int main(int argc, const char *argv[]) {

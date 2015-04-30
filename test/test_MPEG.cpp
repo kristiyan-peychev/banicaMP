@@ -1,12 +1,12 @@
-#include "../MPEG_decoder.h"
+#include "..decode/MPEG_decoder.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstdlib>
 #include <unistd.h>
 #include <fcntl.h>
 
-#define SONG_PATH ""
-#define OUT_PATH ""
+#define SONG_PATH "/falos/08 Throw Away.mp3"
+#define OUT_PATH "/home/kawaguchi/test.wav"
 
 int main(int argc, const char *argv[]) {
 	FILE *file, *KOR;
