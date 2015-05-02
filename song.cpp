@@ -1,9 +1,5 @@
 #include "song.h"
-    
-const char* song::Signatures[song::NumOfSignatures] = {"fLaC","˙ű", "ID3", "RIFF....WAVE"}; 
-const int song::Sizes[song::NumOfSignatures] = {4, 2, 3, 12};
-const char* song::Extensions[song::NumOfSignatures] = {"FLAC", "MP3", "MP3", "WAV"};
-
+#include "extensions.hpp"
 
 song::song(const char* path)
 {
@@ -11,7 +7,7 @@ song::song(const char* path)
 	this->path = new char[strlen(path)+1];
     std::strcpy(this->path, path);
 	this->info = new song_info(path);
-    this->extension = get_file_extension();	
+    this->extension = get_file_extension(path);	
 }
 
 const char* song::get_path() const
@@ -30,18 +26,8 @@ song::~song()
 	delete info;
 }
 
-const char* song::get_file_extension()
-{
-    FILE* f = fopen(this->path, "r");
-    char buff[13];
-    fread(buff, sizeof(char), 13, f);
-    fclose(f);
-    for(int i = 0; i < NumOfSignatures; i++){
-        if(strncmp(buff, Signatures[i], Sizes[i]) == 0)
-            return Extensions[i];
-    }
-    return "UNKNOWN";
-
+int ffdf(){
+    return 42;
 }
 
 const char* song::get_extension() const
