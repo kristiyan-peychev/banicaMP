@@ -7,6 +7,7 @@
  * alter speed
  */
 
+#include <cstdio>
 #include <exception>
 
 class playbackend_except : public std::exception {
@@ -25,13 +26,27 @@ public:
 	virtual void begin(void) = 0;
 	virtual void play(void) = 0;
 	virtual void pause(void) = 0;
-	virtual void togle_pause(void) = 0;
+	virtual void toggle_pause(void) = 0;
 	virtual void stop(void) = 0;
 private:
 	play_wav &operator=(const play_wav &) { return *this; }
 	play_wav(const play_wav &) { }
 };
 
-play_wav *get_player(FILE *file, const char *file_type);
+#if defined(linux)
+#include "linux/play.h"
+#elif defined(WIN32)
+#error KUR ZA WINDOWS
+#endif
+
+play_wav *get_player(FILE *file)
+{
+	#if defined(linux)
+	return new alsa_wav_player(file);
+	#elif defined(WIN32)
+	#error KUR ZA WINDOWS
+	return NULL;
+	#endif
+}
 
 #endif /* end of include guard: PLAY_6T2G7RPS */
