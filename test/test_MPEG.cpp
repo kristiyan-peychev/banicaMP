@@ -1,4 +1,4 @@
-#include "..decode/MPEG_decoder.h"
+#include "../decode/MPEG_decoder.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstdlib>
