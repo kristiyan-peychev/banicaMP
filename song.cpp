@@ -5,9 +5,9 @@ song::song(const char* path)
 {
 	
 	this->path = new char[strlen(path)+1];
-    std::strcpy(this->path, path);
+	std::strcpy(this->path, path);
 	this->info = new song_info(path);
-    this->extension = get_file_extension(path);	
+	this->extension = get_file_extension(path);	
 }
 
 const char* song::get_path() const
@@ -22,15 +22,15 @@ const song_info* song::get_info() const
 
 song::~song()
 {
-    delete[] path;
+	delete[] path;
 	delete info;
 }
 
 int ffdf(){
-    return 42;
+	return 42;
 }
 
 const char* song::get_extension() const
 {
-    return this->extension;
+	return this->extension;
 }
