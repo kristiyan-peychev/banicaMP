@@ -7,8 +7,8 @@
 #include <cstring>
 #include <cerrno>
 #include <cstdio>
+#include <exception>
 //#include <thread>
-//#include <exception>
 
 static void throw_end_of_song(int) throw()
 {
