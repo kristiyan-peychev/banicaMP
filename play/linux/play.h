@@ -5,6 +5,7 @@
 #include "../play.h"
 
 #include <unistd.h>
+#include <cstdio>
 
 const char *aplay_args[] = {
 	"aplay", // executable name
@@ -14,14 +15,14 @@ const char *aplay_args[] = {
 	"-" // read from stdin
 };
 
-class alsa_wav_player : public wav_play {
+class alsa_wav_player : public play_wav {
 private:
 	bool is_paused;
 	int filedsc;
 	pid_t childpid;
 public:
 	alsa_wav_player(FILE *);
-	alsa_wav_player(int);
+	explicit alsa_wav_player(int);
 	~alsa_wav_player(void);
 public:
 	void begin(void);

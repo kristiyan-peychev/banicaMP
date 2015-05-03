@@ -3,28 +3,30 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <cstdlib>
 #include <cstring>
 #include <cerrno>
 #include <cstdio>
-#include <thread>
+//#include <thread>
+//#include <exception>
 
-static void throw_end_of_song(void)
+static void throw_end_of_song(int) throw()
 {
-	throw end_of_song_exception(); // PRO
+	throw playbackend_except();
 }
 
 alsa_wav_player::alsa_wav_player(void) { }
 
 alsa_wav_player::alsa_wav_player(const alsa_wav_player &) { }
 
-alsa_wav_player &alsa_wav_player::operator=(const alsa_wav_player &) { }
+alsa_wav_player &alsa_wav_player::operator=(const alsa_wav_player &) { return *this; }
 
 alsa_wav_player::alsa_wav_player(FILE *filep) :
-		childpid(0), is_paused(true), filedsc(fileno(filep))
+		is_paused(true), filedsc(fileno(filep)), childpid(0)
 { }
 
 alsa_wav_player::alsa_wav_player(int fd) :
-		childpid(0), is_paused(true), filedsc(fd)
+		is_paused(true), filedsc(fd), childpid(0)
 { }
 
 alsa_wav_player::~alsa_wav_player(void)
@@ -48,8 +50,8 @@ void alsa_wav_player::begin(void)
 				exit(EXIT_FAILURE);
 		}
 	} else {
-		int f = 1;
-		char **execarg = new (char *) [sizeof(aplay_args)];
+		unsigned int f = 1;
+		char **execarg = new char * [sizeof(aplay_args)];
 		char *pwd = get_current_dir_name();
 		*execarg = new char [sizeof(*aplay_args) + 1];
 		strcpy(*execarg, pwd);
@@ -57,7 +59,8 @@ void alsa_wav_player::begin(void)
 		strcat(*execarg, *aplay_args);
 		while (f < sizeof(aplay_args)) {
 			execarg[f] = new char [sizeof(aplay_args[f]) + 1];
-			strcpy(execarg[f], aplay_args[f++]);
+			strcpy(execarg[f], aplay_args[f]);
+			++f;
 		}
 
 		if (dup2(STDIN_FILENO, filedsc) == -1) {
