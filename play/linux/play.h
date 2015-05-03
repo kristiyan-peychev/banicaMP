@@ -4,13 +4,26 @@
 
 #include "../play.h"
 
+#include <unistd.h>
+
+const char *aplay_args[] = {
+	"aplay", // executable name
+	"-f", "cd", // 16-bit signed integer
+	"-t", "wav", // WAVE file
+	"-q", // quiet mode
+	"-" // read from stdin
+};
+
 class alsa_wav_player : public wav_play {
 private:
-	FILE *song;
 	bool is_paused;
+	int filedsc;
+	pid_t childpid;
 public:
 	alsa_wav_player(FILE *);
+	alsa_wav_player(int);
 	~alsa_wav_player(void);
+public:
 	void begin(void);
 	void play(void);
 	void pause(void);
