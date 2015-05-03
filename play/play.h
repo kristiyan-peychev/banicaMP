@@ -32,4 +32,6 @@ private:
 	play_wav(const play_wav &) { }
 };
 
+play_wav *get_player(FILE *file, const char *file_type);
+
 #endif /* end of include guard: PLAY_6T2G7RPS */
