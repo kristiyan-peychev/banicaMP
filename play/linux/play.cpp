@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <thread>
 
-static void throw_end_of_song(void) throw
+static void throw_end_of_song(void)
 {
 	throw end_of_song_exception(); // PRO
 }
@@ -20,20 +20,23 @@ alsa_wav_player::alsa_wav_player(const alsa_wav_player &) { }
 alsa_wav_player &alsa_wav_player::operator=(const alsa_wav_player &) { }
 
 alsa_wav_player::alsa_wav_player(FILE *filep) :
-		cpid(0), is_paused(true), filedsc(fileno(filep))
+		childpid(0), is_paused(true), filedsc(fileno(filep))
 { }
 
 alsa_wav_player::alsa_wav_player(int fd) :
-		cpid(0), is_paused(true), filedsc(fd)
+		childpid(0), is_paused(true), filedsc(fd)
 { }
 
-alsa_wav_player::~alsa_wav_player(void) { }
+alsa_wav_player::~alsa_wav_player(void)
+{
+	stop();
+}
 
 void alsa_wav_player::begin(void)
 {
 	childpid = fork();
 
-	if (cpid) {
+	if (childpid) {
 		is_paused = false;
 		// LOLDIS
 		struct sigaction sa;
@@ -95,5 +98,11 @@ void alsa_wav_player::toggle_pause(void)
 
 	kill(childpid, SIGUSR1);
 	is_paused = !is_paused;
+}
+
+void alsa_wav_player::stop(void)
+{
+	if (childpid)
+		kill(childpid, SIGKILL);
 }
 

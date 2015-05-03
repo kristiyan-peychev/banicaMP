@@ -28,6 +28,7 @@ public:
 	void play(void);
 	void pause(void);
 	void toggle_pause(void);
+	void stop(void);
 private:
 	alsa_wav_player(void);
 	alsa_wav_player(const alsa_wav_player &);

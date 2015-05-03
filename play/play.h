@@ -5,7 +5,6 @@
 /* TODO:
  * rewind
  * alter speed
- * stop?
  */
 class play_wav {
 public:
@@ -16,6 +15,7 @@ public:
 	virtual void play(void) = 0;
 	virtual void pause(void) = 0;
 	virtual void togle_pause(void) = 0;
+	virtual void stop(void) = 0;
 private:
 	play_wav &operator=(const play_wav &) { }
 	play_wav(const play_wav &) { }
