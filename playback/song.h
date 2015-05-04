@@ -9,6 +9,7 @@
 #include <taglib/tpropertymap.h>
 
 #include "../decode/decoder.h"
+#include "../decode/get.h"
 
 
 
@@ -30,16 +31,17 @@ struct song_info{
 		TagLib::FileRef f(path);
         
         if(f.isNull() || !f.tag() || !f.audioProperties()){
-            printf("kur\n");
+            //TODO
+            printf("loshooo\n");
         }
 
 		TagLib::AudioProperties* properties = f.audioProperties();
 		TagLib::Tag* tag = f.tag();
         title = tag->title().toCString(true);
-        artist = tag->artist().toCString();
-        album = tag->artist().toCString();
+        artist = tag->artist().toCString(true);
+        album = tag->artist().toCString(true);
         year = tag->year();
-        genre = tag->genre().toCString();
+        genre = tag->genre().toCString(true);
         bitrate = properties->bitrate();
         sample_rate = properties->sampleRate();
         channels = properties->channels();
@@ -50,9 +52,9 @@ struct song_info{
 
 class song{
 private:
-  	song_info* info;
+  	song_info info;
 	char* path;
-	const char* extension;
+	const char* encoding;
 	decoder* dec;
 
 public:
@@ -60,9 +62,9 @@ public:
 	~song();
     
 
-    const song_info* get_info() const; 
+    const song_info& get_info() const; 
 	const char* get_path() const;
-    const char* get_extension() const;
+    const char* get_encoding() const;
 };
 
 #endif
