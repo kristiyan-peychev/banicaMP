@@ -1,15 +1,17 @@
+#include "../../vector/vector.hpp"
 #include "../song.h"
-#include "../../vector/vector.h"
+#include "tinydir.h"
 
 
 class playlist{
 private:
     vector<song*> list;
 
-    void generate(char*);
+    void generate(const char*);
 
 public:
-    playlist(char*, bool);
+    playlist(const char* =NULL, bool=false);
+    ~playlist();
 
     void play_song(int);
     void pause_song(int);
@@ -17,8 +19,10 @@ public:
     void remove_song(int);
     void add_song(int);
 
-    void load(char*);
-    void save(char*);
+    void load(const char*);
+    void save(const char*);
+
+    void print_songs();
 
 
 };
