@@ -10,7 +10,7 @@ static const char* SIGNATURES[NUMSIGNATURES] = {"fLaC","˙ű", "ID3", "RIFF....W
 static const int SIZES[NUMSIGNATURES] = {4, 2, 3, 12};
 static const char* ENCODINGS[NUMSIGNATURES] = {"FLAC", "MP3", "MP3", "WAV"};
 
-inline const char* get_file_extension(const char* path)
+inline const char* get_file_encoding(const char* path)
 {
     FILE* f = fopen(path, "r");
     char buff[MAXSIZE+1];
