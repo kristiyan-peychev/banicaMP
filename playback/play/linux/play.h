@@ -7,8 +7,10 @@
 #include <unistd.h>
 #include <cstdio>
 
+#define NAME_SIZE 256
+
 const char *aplay_args[] = {
-	"aplay", // executable name
+	"/aplay", // executable name
 	"-f", "cd", // 16-bit signed integer
 	"-t", "wav", // WAVE file
 	"-q", // quiet mode

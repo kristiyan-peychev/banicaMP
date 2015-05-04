@@ -51,23 +51,27 @@ void alsa_wav_player::begin(void)
 		}
 	} else {
 		unsigned int f = 1;
-		char **execarg = new char * [sizeof(aplay_args)];
+		char **execarg = new char * [8];
 		char *pwd = get_current_dir_name();
-		*execarg = new char [sizeof(*aplay_args) + 1];
+		*execarg = new char [NAME_SIZE];
 		strcpy(*execarg, pwd);
 		free(pwd);
 		strcat(*execarg, *aplay_args);
-		while (f < sizeof(aplay_args)) {
+		while (f < /*sizeof(aplay_args)*/7) {
 			execarg[f] = new char [sizeof(aplay_args[f]) + 1];
 			strcpy(execarg[f], aplay_args[f]);
 			++f;
 		}
+		execarg[f] = (char *) NULL;
 
-		if (dup2(STDIN_FILENO, filedsc) == -1) {
+		if (dup2(filedsc, STDIN_FILENO) == -1) {
 			perror("dup2");
 			exit(EXIT_FAILURE); // FIXME
 		}
-		execv(*execarg, execarg);
+		execvp(*execarg, execarg);
+
+		perror("execv");
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -107,5 +111,10 @@ void alsa_wav_player::stop(void)
 {
 	if (childpid)
 		kill(childpid, SIGKILL);
+}
+
+play_wav *get_player(FILE *file)
+{
+	return new alsa_wav_player(file);
 }
 
