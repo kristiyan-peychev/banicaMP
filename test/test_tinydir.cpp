@@ -18,7 +18,7 @@ void test(const char* path){
         if(!strcmp(file.name, ".") || !strcmp(file.name, ".."))
            continue;
 
-        if(strcmp(get_file_extension(file.path), "UNKNOWN"))
+        if(strcmp(get_file_encoding(file.path), "UNKNOWN"))
             printf("%s\n", file.name);
         if(file.is_dir && strcmp(file.name, ".") && strcmp(file.name, "..")){
             test(file.path);

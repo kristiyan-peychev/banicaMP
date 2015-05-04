@@ -31,7 +31,7 @@ void playlist::generate(const char* path)
             continue;
         }
 
-        if(strcmp(get_file_extension(file.path), "UNKNOWN") ){
+        if(strcmp(get_file_encoding(file.path), "UNKNOWN") ){
             song* tmp = new song(file.path);
             list.push_back(tmp);
         }
@@ -47,7 +47,7 @@ void playlist::generate(const char* path)
 void playlist::print_songs()
 {
     for(int i = 0; i < list.size(); i++){
-        printf("%d: %s\n",i, list[i]->get_info()->title);
+        printf("%d: %s\n",i, list[i]->get_info().title);
     }
 }
 
