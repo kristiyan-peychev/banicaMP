@@ -23,12 +23,9 @@ const song_info* song::get_info() const
 song::~song()
 {
 	delete[] path;
-	delete info;
+    delete info;
 }
 
-int ffdf(){
-	return 42;
-}
 
 const char* song::get_extension() const
 {
