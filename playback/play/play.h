@@ -33,20 +33,14 @@ private:
 	play_wav(const play_wav &) { }
 };
 
+#if 0
 #if defined(linux)
 #include "linux/play.h"
 #elif defined(WIN32)
 #error KUR ZA WINDOWS
 #endif
+#endif
 
-play_wav *get_player(FILE *file)
-{
-	#if defined(linux)
-	return new alsa_wav_player(file);
-	#elif defined(WIN32)
-	#error KUR ZA WINDOWS
-	return NULL;
-	#endif
-}
+play_wav *get_player(FILE *);
 
 #endif /* end of include guard: PLAY_6T2G7RPS */
