@@ -20,6 +20,7 @@ playlist::~playlist()
 
 void playlist::generate(const char* path)
 {
+    //NEEDS MORE ERROR HANDLING
     tinydir_dir dir;
     tinydir_open(&dir, path);
     while(dir.has_next){
@@ -32,9 +33,9 @@ void playlist::generate(const char* path)
         }
 
         if(strcmp(get_file_encoding(file.path), "UNKNOWN") ){
-            song* tmp = new song(file.path);
-            list.push_back(tmp);
+            list.push_back(new song(file.path));
         }
+        if(list.size() > 0)
         
         if(file.is_dir && strcmp(file.name, ".") && strcmp(file.name, ".."))
             generate(file.path);
@@ -47,7 +48,7 @@ void playlist::generate(const char* path)
 void playlist::print_songs()
 {
     for(int i = 0; i < list.size(); i++){
-        printf("%d: %s\n",i, list[i]->get_info().title);
+        printf("%d: %s\n",i, list[i]->get_info().title.toCString(true));
     }
 }
 
