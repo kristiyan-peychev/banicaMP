@@ -8,7 +8,7 @@ song::song(const char* path): info(path)
 	std::strcpy(this->path, path);
     FILE* f = fopen(this->path, "r");
 	this->encoding = get_file_encoding(path);	
-    this->dec = get_decoder(f,this->encoding); 
+    //this->dec = get_decoder(f,this->encoding); 
 }
 
 const char* song::get_path() const
