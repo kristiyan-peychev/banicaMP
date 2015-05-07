@@ -1,3 +1,11 @@
-#HOWTO compile this shit
+#Linux WAVE player
+##Compilation
 
-gcc aplay.c -O2 -lrt -lasound -lm -ldl
+Create a `build` directory. Execute
+`cmake ..`
+`make`
+##Usage
+Consult `play.h.in`
+##TODO
+Sound volume.
+Equalizer.
