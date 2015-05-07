@@ -52,10 +52,10 @@ void alsa_wav_player::begin(void)
 	} else {
 		unsigned int f = 1;
 		char **execarg = new char * [8];
-		char *pwd = get_current_dir_name();
+		//char *pwd = get_current_dir_name();
 		*execarg = new char [NAME_SIZE];
 		strcpy(*execarg, pwd);
-		free(pwd);
+		//free(pwd);
 		strcat(*execarg, *aplay_args);
 		while (f < /*sizeof(aplay_args)*/7) {
 			execarg[f] = new char [sizeof(aplay_args[f]) + 1];
