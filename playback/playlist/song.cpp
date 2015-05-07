@@ -91,6 +91,5 @@ void song::stop()
     if(player == NULL)
         throw player_not_found_exception();
     player->stop();
-    clear_song();
 }
 
