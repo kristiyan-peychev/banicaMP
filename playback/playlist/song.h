@@ -3,7 +3,7 @@
 
 #include <cstring>
 #include <cstdio>
-#include <stdexcept>
+#include <exception>
 
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
@@ -13,7 +13,21 @@
 #include "../../decode/get.h"
 #include "../play/play.h"
 
+class player_not_found_exception : public std::exception {
+public:
+    virtual const char* what() const throw()
+    {
+        return "Player does not exist";
+    }
+};
 
+class tags_missing_exception : public std::exception {
+public:
+    virtual const char* what() const throw()
+    {
+        return "Cannot read tags";
+    }
+};
 
 struct song_info{
     TagLib::String title;
@@ -33,8 +47,7 @@ struct song_info{
 		TagLib::FileRef f(path);
         
         if(f.isNull() || !f.tag() || !f.audioProperties()){
-            //TODO
-           throw std::out_of_range("blah2"); 
+            throw tags_missing_exception();
         }
 
 		TagLib::AudioProperties* properties = f.audioProperties();
@@ -59,8 +72,11 @@ private:
 	const char* encoding;
 	decoder* dec;
     FILE* decoded_file;
+    FILE* f;
     play_wav* player;
 
+    void decode_song();
+    void clear_song();
 
 public:
 	song(const char*);
@@ -71,8 +87,6 @@ public:
 	const char* get_path() const;
     const char* get_encoding() const;
 
-    void decode_song();
-    void clear_song();
 
     void start();
     void pause();
