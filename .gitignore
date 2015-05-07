@@ -31,3 +31,4 @@
 *.swp
 
 main.cpp
+playback/play/linux/build/*
