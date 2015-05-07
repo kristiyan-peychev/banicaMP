@@ -8,6 +8,7 @@
 #include <cstdio>
 
 #define NAME_SIZE 256
+#define pwd @APLAY_PWD@
 
 const char *aplay_args[] = {
 	"/aplay", // executable name
