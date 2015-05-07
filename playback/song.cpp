@@ -1,13 +1,14 @@
 #include "song.h"
 #include "encodings.h"
 
-song::song(const char* path)
+song::song(const char* path): info(path)
 {
 	
 	this->path = new char[strlen(path)+1];
 	std::strcpy(this->path, path);
-	this->info = new song_info(path);
-	this->extension = get_file_extension(path);	
+    FILE* f = fopen(this->path, "r");
+	this->encoding = get_file_encoding(path);	
+    //this->dec = get_decoder(f,this->encoding); 
 }
 
 const char* song::get_path() const
@@ -15,7 +16,7 @@ const char* song::get_path() const
 	return path;
 }
 
-const song_info* song::get_info() const 
+const song_info& song::get_info() const 
 {
 	return info;
 }
@@ -23,11 +24,10 @@ const song_info* song::get_info() const
 song::~song()
 {
 	delete[] path;
-    delete info;
 }
 
 
-const char* song::get_extension() const
+const char* song::get_encoding() const
 {
-	return this->extension;
+	return this->encoding;
 }
