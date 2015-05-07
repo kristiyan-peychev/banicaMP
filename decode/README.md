@@ -7,3 +7,4 @@ To use the decoders you have to include both the `decoder.h` and `get.h` headers
 We support only FLAC and MP3 for now. We might consider doing more formats in the future, but we are fine for now.
 
 ##TODOs
+Make and make an ogg decoder
