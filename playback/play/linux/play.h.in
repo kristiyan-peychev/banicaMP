@@ -10,14 +10,6 @@
 #define NAME_SIZE 256
 #define pwd @APLAY_PWD@
 
-const char *aplay_args[] = {
-	"/aplay", // executable name
-	"-f", "cd", // 16-bit signed integer
-	"-t", "wav", // WAVE file
-	"-q", // quiet mode
-	"-" // read from stdin
-};
-
 class alsa_wav_player : public play_wav {
 private:
 	bool is_paused;

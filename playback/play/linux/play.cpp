@@ -10,6 +10,14 @@
 #include <exception>
 //#include <thread>
 
+static const char *aplay_args[] = {
+	"/aplay", // executable name
+	"-f", "cd", // 16-bit signed integer
+	"-t", "wav", // WAVE file
+	"-q", // quiet mode
+	"-" // read from stdin
+};
+
 static void throw_end_of_song(int) throw()
 {
 	throw playbackend_except();
