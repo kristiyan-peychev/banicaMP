@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(play)
 set(PLAY_DEPLIBS ${PLAY_DEPLIBS} asound rt m dl)
-set(APLAY_PWD "\"${CMAKE_CURRENT_SOURCE_DIR}\"")
+set(APLAY_PWD "\"${CMAKE_CURRENT_SOURCE_DIR}/\"")
 
 configure_file("${PROJECT_SOURCE_DIR}/play.h.in" "${PROJECT_SOURCE_DIR}/play.h")
 include_directories("${PROJECT_BINARY_DIR}/build")
