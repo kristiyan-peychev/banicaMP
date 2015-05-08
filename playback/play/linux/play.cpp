@@ -113,7 +113,7 @@ void alsa_wav_player::stop(void)
 		kill(childpid, SIGKILL);
 }
 
-play_wav *get_player(FILE *file)
+extern "C" play_wav *get_player(FILE *file)
 {
 	return new alsa_wav_player(file);
 }
