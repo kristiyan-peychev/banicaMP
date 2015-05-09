@@ -5,7 +5,7 @@
 #include "decoder.h"
 
 // FIXME remove hardcode
-decoder *get_decoder(FILE *file, const char *enc_type)
+extern "C" decoder *get_decoder(FILE *file, const char *enc_type)
 {
 	if (!strncmp(enc_type, "FLAC", sizeof("FLAC")))
 		return new flac_decoder(file);
