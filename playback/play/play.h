@@ -41,6 +41,6 @@ private:
 #endif
 #endif
 
-play_wav *get_player(FILE *);
+extern "C" play_wav *get_player(FILE *);
 
 #endif /* end of include guard: PLAY_6T2G7RPS */
