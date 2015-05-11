@@ -10,4 +10,4 @@ include_directories("${PROJECT_BINARY_DIR}/build")
 add_executable(aplay aplay.c)
 target_link_libraries(aplay ${PLAY_DEPLIBS})
 
-add_library(play play.cpp)
+add_library(play SHARED play.cpp)

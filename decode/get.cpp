@@ -1,12 +1,7 @@
-#ifndef GET_R1S6CD6W
-
-#define GET_R1S6CD6W
-
+#include <cstring>
 #include "decoder.h"
 
-// FIXME remove hardcode
-extern "C" decoder *get_decoder(FILE *file, const char *enc_type);
-/*
+extern "C" decoder *get_decoder(FILE *file, const char *enc_type)
 {
 	if (!strncmp(enc_type, "FLAC", sizeof("FLAC")))
 		return new flac_decoder(file);
@@ -15,6 +10,3 @@ extern "C" decoder *get_decoder(FILE *file, const char *enc_type);
 	else
 		return NULL;
 }
-*/
-
-#endif /* end of include guard: GET_R1S6CD6W */
