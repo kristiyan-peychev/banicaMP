@@ -31,4 +31,7 @@
 *.swp
 
 main.cpp
+compile.sh
+playback/play/linux/play.h
 playback/play/linux/build/*
+decode/build/*
