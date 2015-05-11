@@ -1,6 +1,7 @@
 #include "../../vector/vector.hpp"
-#include "../song.h"
+#include "song.h"
 #include "tinydir.h"
+#include "encodings.h"
 
 
 class playlist{

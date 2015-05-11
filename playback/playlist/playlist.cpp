@@ -1,5 +1,4 @@
 #include "playlist.h"
-#include "../encodings.h"
 
 playlist::playlist(const char* path, bool is_playlist)
 {
