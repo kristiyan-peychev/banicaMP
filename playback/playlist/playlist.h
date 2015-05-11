@@ -1,3 +1,6 @@
+#ifndef PLAYLIST_H
+#define PLAYLIST_H
+
 #include "../../vector/vector.hpp"
 #include "song.h"
 #include "tinydir.h"
@@ -27,3 +30,5 @@ public:
 
 
 };
+
+#endif
