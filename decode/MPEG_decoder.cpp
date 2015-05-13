@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <string>
 
-#define BUFF_SIZE 32767
+#define BUFF_SIZE 8388608 // 8MB
 
 /*
 #include <unistd.h>
