@@ -81,6 +81,13 @@
 
 /* global data */
 
+/* v custom */
+
+#define PARENT_PIPE_NAME "banica_player_chld_ctl_fifo"
+
+static int parent_pipe;
+/* ^ custom */
+
 static snd_pcm_sframes_t (*readi_func)(snd_pcm_t *handle, void *buffer, snd_pcm_uframes_t size);
 static snd_pcm_sframes_t (*writei_func)(snd_pcm_t *handle, const void *buffer, snd_pcm_uframes_t size);
 static snd_pcm_sframes_t (*readn_func)(snd_pcm_t *handle, void **bufs, snd_pcm_uframes_t size);
@@ -155,16 +162,14 @@ static unsigned int *hw_map = NULL; /* chmap to follow */
 static void done_stdin(void);
 
 static void playback(char *filename);
-static void capture(char *filename);
 static void playbackv(char **filenames, unsigned int count);
-static void capturev(char **filenames, unsigned int count);
 
-static void begin_voc(int fd, size_t count);
-static void end_voc(int fd);
+/*static void begin_voc(int fd, size_t count);*/
+/*static void end_voc(int fd);*/
 static void begin_wave(int fd, size_t count);
 static void end_wave(int fd);
-static void begin_au(int fd, size_t count);
-static void end_au(int fd);
+/*static void begin_au(int fd, size_t count);*/
+/*static void end_au(int fd);*/
 
 static const struct fmt_capture {
     void (*start) (int fd, size_t count);
@@ -173,10 +178,10 @@ static const struct fmt_capture {
     long long max_filesize;
 } fmt_rec_table[] = {
     {   NULL,       NULL,       N_("raw data"),     LLONG_MAX },
-    {   begin_voc,  end_voc,    N_("VOC"),      16000000LL },
+    {   begin_wave,  end_wave,    N_("VOC"),      16000000LL },
     /* FIXME: can WAV handle exactly 2GB or less than it? */
     {   begin_wave, end_wave,   N_("WAVE"),     2147483648LL },
-    {   begin_au,   end_au,     N_("Sparc Audio"),  LLONG_MAX }
+    {   begin_wave,   end_wave,     N_("Sparc Audio"),  LLONG_MAX }
 };
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
@@ -411,7 +416,18 @@ void toggle_pause(int signum)
 
 void rewind_test(int signum)
 {
-    fseek(stdin, 0, SEEK_SET);
+    int reed;
+    if (read(parent_pipe, &reed, sizeof(reed)) < 0) {
+        /*Error out, or in this case, ignore everything*/
+        return;
+    }
+    fprintf(stderr, "read: %d\n", reed);
+    toggle_pause(0);
+    if (!fseek(stdin, reed, SEEK_CUR))
+        fprintf(stderr, "YES.\n");
+    else
+        fprintf(stderr, "NUU!\n");
+    toggle_pause(0);
 }
 
 int main(int argc, char *argv[])
@@ -431,6 +447,9 @@ int main(int argc, char *argv[])
     sb.sa_flags = SA_RESTART;
     sb.sa_handler = rewind_test;
     sigfillset(&sb.sa_mask);
+
+    mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
+    parent_pipe = open(PARENT_PIPE_NAME, O_RDONLY);
 
     static const struct option long_options[] = {
         {"help", 0, 0, 'h'},
@@ -495,23 +514,6 @@ int main(int argc, char *argv[])
 
     command = argv[0];
     file_type = FORMAT_DEFAULT;
-    /* TODO: uncomment and delete */
-#if 0
-    if (strstr(argv[0], "arecord")) {
-        stream = SND_PCM_STREAM_CAPTURE;
-        file_type = FORMAT_WAVE;
-        command = "arecord";
-        start_delay = 1;
-        direction = stdout;
-    } else if (strstr(argv[0], "aplay")) {
-        stream = SND_PCM_STREAM_PLAYBACK;
-        command = "aplay";
-        direction = stdin;
-    } else {
-        error(_("command should be named either arecord or aplay"));
-        return 1;
-    }
-#endif
     stream = SND_PCM_STREAM_PLAYBACK;
     command = "aplay";
     direction = stdin;
@@ -804,6 +806,7 @@ int main(int argc, char *argv[])
             /*capturev(&argv[optind], argc - optind);*/
     }
     snd_pcm_close(handle);
+    close(parent_pipe);
     handle = NULL;
     free(audiobuf);
       __end:
@@ -2403,57 +2406,6 @@ static off64_t calc_count(void)
     return count < pbrec_count ? count : pbrec_count;
 }
 
-/* write a .VOC-header */
-static void begin_voc(int fd, size_t cnt)
-{
-    VocHeader vh;
-    VocBlockType bt;
-    VocVoiceData vd;
-    VocExtBlock eb;
-
-    memcpy(vh.magic, VOC_MAGIC_STRING, 20);
-    vh.headerlen = LE_SHORT(sizeof(VocHeader));
-    vh.version = LE_SHORT(VOC_ACTUAL_VERSION);
-    vh.coded_ver = LE_SHORT(0x1233 - VOC_ACTUAL_VERSION);
-
-    if (write(fd, &vh, sizeof(VocHeader)) != sizeof(VocHeader)) {
-        error(_("write error"));
-        prg_exit(EXIT_FAILURE);
-    }
-    if (hwparams.channels > 1) {
-        /* write an extended block */
-        bt.type = 8;
-        bt.datalen = 4;
-        bt.datalen_m = bt.datalen_h = 0;
-        if (write(fd, &bt, sizeof(VocBlockType)) != sizeof(VocBlockType)) {
-            error(_("write error"));
-            prg_exit(EXIT_FAILURE);
-        }
-        eb.tc = LE_SHORT(65536 - 256000000L / (hwparams.rate << 1));
-        eb.pack = 0;
-        eb.mode = 1;
-        if (write(fd, &eb, sizeof(VocExtBlock)) != sizeof(VocExtBlock)) {
-            error(_("write error"));
-            prg_exit(EXIT_FAILURE);
-        }
-    }
-    bt.type = 1;
-    cnt += sizeof(VocVoiceData);    /* Channel_data block follows */
-    bt.datalen = (u_char) (cnt & 0xFF);
-    bt.datalen_m = (u_char) ((cnt & 0xFF00) >> 8);
-    bt.datalen_h = (u_char) ((cnt & 0xFF0000) >> 16);
-    if (write(fd, &bt, sizeof(VocBlockType)) != sizeof(VocBlockType)) {
-        error(_("write error"));
-        prg_exit(EXIT_FAILURE);
-    }
-    vd.tc = (u_char) (256 - (1000000 / hwparams.rate));
-    vd.pack = 0;
-    if (write(fd, &vd, sizeof(VocVoiceData)) != sizeof(VocVoiceData)) {
-        error(_("write error"));
-        prg_exit(EXIT_FAILURE);
-    }
-}
-
 /* write a WAVE-header */
 static void begin_wave(int fd, size_t cnt)
 {
@@ -2526,65 +2478,6 @@ static void begin_wave(int fd, size_t cnt)
     }
 }
 
-/* write a Au-header */
-static void begin_au(int fd, size_t cnt)
-{
-    AuHeader ah;
-
-    ah.magic = AU_MAGIC;
-    ah.hdr_size = BE_INT(24);
-    ah.data_size = BE_INT(cnt);
-    switch ((unsigned long) hwparams.format) {
-    case SND_PCM_FORMAT_MU_LAW:
-        ah.encoding = BE_INT(AU_FMT_ULAW);
-        break;
-    case SND_PCM_FORMAT_U8:
-        ah.encoding = BE_INT(AU_FMT_LIN8);
-        break;
-    case SND_PCM_FORMAT_S16_BE:
-        ah.encoding = BE_INT(AU_FMT_LIN16);
-        break;
-    default:
-        error(_("Sparc Audio doesn't support %s format..."), snd_pcm_format_name(hwparams.format));
-        prg_exit(EXIT_FAILURE);
-    }
-    ah.sample_rate = BE_INT(hwparams.rate);
-    ah.channels = BE_INT(hwparams.channels);
-    if (write(fd, &ah, sizeof(AuHeader)) != sizeof(AuHeader)) {
-        error(_("write error"));
-        prg_exit(EXIT_FAILURE);
-    }
-}
-
-/* closing .VOC */
-static void end_voc(int fd)
-{
-    off64_t length_seek;
-    VocBlockType bt;
-    size_t cnt;
-    char dummy = 0;     /* Write a Terminator */
-
-    if (write(fd, &dummy, 1) != 1) {
-        error(_("write error"));
-        prg_exit(EXIT_FAILURE);
-    }
-    length_seek = sizeof(VocHeader);
-    if (hwparams.channels > 1)
-        length_seek += sizeof(VocBlockType) + sizeof(VocExtBlock);
-    bt.type = 1;
-    cnt = fdcount;
-    cnt += sizeof(VocVoiceData);    /* Channel_data block follows */
-    if (cnt > 0x00ffffff)
-        cnt = 0x00ffffff;
-    bt.datalen = (u_char) (cnt & 0xFF);
-    bt.datalen_m = (u_char) ((cnt & 0xFF00) >> 8);
-    bt.datalen_h = (u_char) ((cnt & 0xFF0000) >> 16);
-    if (lseek64(fd, length_seek, SEEK_SET) == length_seek)
-        write(fd, &bt, sizeof(VocBlockType));
-    if (fd != 1)
-        close(fd);
-}
-
 static void end_wave(int fd)
 {               /* only close output */
     WaveChunkHeader cd;
@@ -2603,19 +2496,6 @@ static void end_wave(int fd)
         write(fd, &rifflen, 4);
     if (lseek64(fd, length_seek, SEEK_SET) == length_seek)
         write(fd, &cd, sizeof(WaveChunkHeader));
-    if (fd != 1)
-        close(fd);
-}
-
-static void end_au(int fd)
-{               /* only close output */
-    AuHeader ah;
-    off64_t length_seek;
-    
-    length_seek = (char *)&ah.data_size - (char *)&ah;
-    ah.data_size = fdcount > 0xffffffff ? 0xffffffff : BE_INT(fdcount);
-    if (lseek64(fd, length_seek, SEEK_SET) == length_seek)
-        write(fd, &ah.data_size, sizeof(ah.data_size));
     if (fd != 1)
         close(fd);
 }
@@ -2710,18 +2590,6 @@ static void playback(char *name)
 
     pbrec_count = LLONG_MAX;
     fdcount = 0;
-    #if 0
-    if (!name || !strcmp(name, "-")) {
-        fd = fileno(stdin);
-        name = "stdin";
-    } else {
-        init_stdin();
-        if ((fd = open(name, O_RDONLY, 0)) == -1) {
-            perror(name);
-            prg_exit(EXIT_FAILURE);
-        }
-    }
-    #endif
     fd = fileno(stdin);
     name = "stdin";
     /* read the file header */
@@ -2835,60 +2703,6 @@ size_t mystrftime(char *s, size_t max, const char *userformat,
     return strftime(s, max, format, tm);
 }
 
-static int new_capture_file(char *name, char *namebuf, size_t namelen,
-                int filecount)
-{
-    char *s;
-    char buf[PATH_MAX+1];
-    time_t t;
-    struct tm *tmp;
-
-    if (use_strftime) {
-        t = time(NULL);
-        tmp = localtime(&t);
-        if (tmp == NULL) {
-            perror("localtime");
-            prg_exit(EXIT_FAILURE);
-        }
-        if (mystrftime(namebuf, namelen, name, tmp, filecount+1) == 0) {
-            fprintf(stderr, "mystrftime returned 0");
-            prg_exit(EXIT_FAILURE);
-        }
-        return filecount;
-    }
-
-    /* get a copy of the original filename */
-    strncpy(buf, name, sizeof(buf));
-
-    /* separate extension from filename */
-    s = buf + strlen(buf);
-    while (s > buf && *s != '.' && *s != '/')
-        --s;
-    if (*s == '.')
-        *s++ = 0;
-    else if (*s == '/')
-        s = buf + strlen(buf);
-
-    /* upon first jump to this if block rename the first file */
-    if (filecount == 1) {
-        if (*s)
-            snprintf(namebuf, namelen, "%s-01.%s", buf, s);
-        else
-            snprintf(namebuf, namelen, "%s-01", buf);
-        remove(namebuf);
-        rename(name, namebuf);
-        filecount = 2;
-    }
-
-    /* name of the current file */
-    if (*s)
-        snprintf(namebuf, namelen, "%s-%02i.%s", buf, filecount, s);
-    else
-        snprintf(namebuf, namelen, "%s-%02i", buf, filecount);
-
-    return filecount;
-}
-
 /**
  * create_path
  *
@@ -2939,114 +2753,6 @@ static int safe_open(const char *name)
             fd = open(name, O_WRONLY | O_CREAT, 0644);
     }
     return fd;
-}
-
-static void capture(char *orig_name)
-{
-    int tostdout=0;     /* boolean which describes output stream */
-    int filecount=0;    /* number of files written */
-    char *name = orig_name; /* current filename */
-    char namebuf[PATH_MAX+1];
-    off64_t count, rest;        /* number of bytes to capture */
-
-    /* get number of bytes to capture */
-    count = calc_count();
-    if (count == 0)
-        count = LLONG_MAX;
-    /* compute the number of bytes per file */
-    max_file_size = max_file_time *
-        snd_pcm_format_size(hwparams.format,
-                    hwparams.rate * hwparams.channels);
-    /* WAVE-file should be even (I'm not sure), but wasting one byte
-       isn't a problem (this can only be in 8 bit mono) */
-    if (count < LLONG_MAX)
-        count += count % 2;
-    else
-        count -= count % 2;
-
-    /* display verbose output to console */
-    header(file_type, name);
-
-    /* setup sound hardware */
-    set_params();
-
-    /* write to stdout? */
-    if (!name || !strcmp(name, "-")) {
-        fd = fileno(stdout);
-        name = "stdout";
-        tostdout=1;
-        if (count > fmt_rec_table[file_type].max_filesize)
-            count = fmt_rec_table[file_type].max_filesize;
-    }
-    init_stdin();
-
-    do {
-        /* open a file to write */
-        if(!tostdout) {
-            /* upon the second file we start the numbering scheme */
-            if (filecount || use_strftime) {
-                filecount = new_capture_file(orig_name, namebuf,
-                                 sizeof(namebuf),
-                                 filecount);
-                name = namebuf;
-            }
-            
-            /* open a new file */
-            remove(name);
-            fd = safe_open(name);
-            if (fd < 0) {
-                perror(name);
-                prg_exit(EXIT_FAILURE);
-            }
-            filecount++;
-        }
-
-        rest = count;
-        if (rest > fmt_rec_table[file_type].max_filesize)
-            rest = fmt_rec_table[file_type].max_filesize;
-        if (max_file_size && (rest > max_file_size)) 
-            rest = max_file_size;
-
-        /* setup sample header */
-        if (fmt_rec_table[file_type].start)
-            fmt_rec_table[file_type].start(fd, rest);
-
-        /* capture */
-        fdcount = 0;
-        while (rest > 0 && recycle_capture_file == 0 && !in_aborting) {
-            size_t c = (rest <= (off64_t)chunk_bytes) ?
-                (size_t)rest : chunk_bytes;
-            size_t f = c * 8 / bits_per_frame;
-            if (pcm_read(audiobuf, f) != f)
-                break;
-            if (write(fd, audiobuf, c) != c) {
-                perror(name);
-                prg_exit(EXIT_FAILURE);
-            }
-            count -= c;
-            rest -= c;
-            fdcount += c;
-        }
-
-        /* re-enable SIGUSR1 signal */
-        if (recycle_capture_file) {
-            recycle_capture_file = 0;
-            signal(SIGUSR1, signal_handler_recycle);
-        }
-
-        /* finish sample container */
-        if (fmt_rec_table[file_type].end && !tostdout) {
-            fmt_rec_table[file_type].end(fd);
-            fd = -1;
-        }
-
-        if (in_aborting)
-            break;
-
-        /* repeat the loop when format is raw without timelimit or
-         * requested counts of data are recorded
-         */
-    } while ((file_type == FORMAT_RAW && !timelimit) || count > 0);
 }
 
 static void playbackv_go(int* fds, unsigned int channels, size_t loaded, off64_t count, int rtype, char **names)
@@ -3101,43 +2807,6 @@ static void playbackv_go(int* fds, unsigned int channels, size_t loaded, off64_t
     snd_pcm_nonblock(handle, nonblock);
 }
 
-static void capturev_go(int* fds, unsigned int channels, off64_t count, int rtype, char **names)
-{
-    size_t c;
-    ssize_t r;
-    unsigned int channel;
-    size_t vsize;
-    u_char *bufs[channels];
-
-    header(rtype, names[0]);
-    set_params();
-
-    vsize = chunk_bytes / channels;
-
-    for (channel = 0; channel < channels; ++channel)
-        bufs[channel] = audiobuf + vsize * channel;
-
-    while (count > 0 && !in_aborting) {
-        size_t rv;
-        c = count;
-        if (c > chunk_bytes)
-            c = chunk_bytes;
-        c = c * 8 / bits_per_frame;
-        if ((size_t)(r = pcm_readv(bufs, channels, c)) != c)
-            break;
-        rv = r * bits_per_sample / 8;
-        for (channel = 0; channel < channels; ++channel) {
-            if ((size_t)write(fds[channel], bufs[channel], rv) != rv) {
-                perror(names[channel]);
-                prg_exit(EXIT_FAILURE);
-            }
-        }
-        r = r * bits_per_frame / 8;
-        count -= r;
-        fdcount += r;
-    }
-}
-
 static void playbackv(char **names, unsigned int count)
 {
     int ret = 0;
@@ -3177,59 +2846,6 @@ static void playbackv(char **names, unsigned int count)
     init_raw_data();
     pbrec_count = calc_count();
     playbackv_go(fds, channels, 0, pbrec_count, FORMAT_RAW, names);
-
-      __end:
-    for (channel = 0; channel < channels; ++channel) {
-        if (fds[channel] >= 0)
-            close(fds[channel]);
-        if (alloced)
-            free(names[channel]);
-    }
-    if (alloced)
-        free(names);
-    if (ret)
-        prg_exit(ret);
-}
-
-static void capturev(char **names, unsigned int count)
-{
-    int ret = 0;
-    unsigned int channel;
-    unsigned int channels = rhwparams.channels;
-    int alloced = 0;
-    int fds[channels];
-    for (channel = 0; channel < channels; ++channel)
-        fds[channel] = -1;
-
-    if (count == 1) {
-        size_t len = strlen(names[0]);
-        char format[1024];
-        memcpy(format, names[0], len);
-        strcpy(format + len, ".%d");
-        len += 4;
-        names = malloc(sizeof(*names) * channels);
-        for (channel = 0; channel < channels; ++channel) {
-            names[channel] = malloc(len);
-            sprintf(names[channel], format, channel);
-        }
-        alloced = 1;
-    } else if (count != channels) {
-        error(_("You need to specify %d files"), channels);
-        prg_exit(EXIT_FAILURE);
-    }
-
-    for (channel = 0; channel < channels; ++channel) {
-        fds[channel] = open(names[channel], O_WRONLY + O_CREAT, 0644);
-        if (fds[channel] < 0) {
-            perror(names[channel]);
-            ret = EXIT_FAILURE;
-            goto __end;
-        }
-    }
-    /* should be raw data */
-    init_raw_data();
-    pbrec_count = calc_count();
-    capturev_go(fds, channels, pbrec_count, FORMAT_RAW, names);
 
       __end:
     for (channel = 0; channel < channels; ++channel) {

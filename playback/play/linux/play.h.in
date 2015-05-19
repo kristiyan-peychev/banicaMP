@@ -15,6 +15,7 @@ private:
 	bool is_paused;
 	int filedsc;
 	pid_t childpid;
+    int child_pipe;
 public:
 	alsa_wav_player(FILE *);
 	explicit alsa_wav_player(int);
@@ -22,9 +23,10 @@ public:
 public:
 	void begin(void);
 	void play(void);
-	void pause(void);
+    void pause(void);
 	void toggle_pause(void);
 	void stop(void);
+    void rewind(int);
 private:
 	alsa_wav_player(void);
 	alsa_wav_player(const alsa_wav_player &);
