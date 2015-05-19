@@ -1,39 +1,38 @@
 #include "song.h"
 #include "encodings.h"
+#include "sys/wait.h"
 
-song::song(const char* p): info(p),path(NULL), dec(NULL), decoded_file(NULL),f(NULL), player(NULL)
+song::song(const char* p): info(p),path(NULL), dec(NULL), decoded_file(NULL),
+song_file(NULL), player(NULL)
 {
 	
 	path = new char[strlen(p)+1];
 	std::strcpy(path, p);
 	encoding = get_file_encoding(path);
-
     
 }
 
 song::~song()
 {
+    clear_song();
     if(path != NULL)
 	    delete[] path;
-    clear_song();
 }
 
-void song::decode_song()
+void song::load_song()
 {
     if(dec == NULL){
-        f = fopen(path, "rb");
-        dec = get_decoder(f, encoding);
+        song_file = fopen(path, "rb");
+        dec = get_decoder(song_file, encoding);
     }
 
     if(player == NULL){
         if(decoded_file == NULL){
-            tmpnam(tmp_file_name);
-            decoded_file = fopen(tmp_file_name, "w+b");;
+            decoded_file = tmpfile();
             dec->decode(decoded_file);
-            fclose(decoded_file);
-        }
 
-        decoded_file = fopen(tmp_file_name, "r+b");
+        }
+        rewind(decoded_file);
         player = get_player(decoded_file);
     }
 }
@@ -42,21 +41,21 @@ void song::clear_song()
 {
     if(decoded_file != NULL){
         fclose(decoded_file);
-        remove(tmp_file_name);
     }
     if(dec != NULL)
         delete dec;
+
     //CAUSES DOUBLE FREE OR CORRUPTION
     //WTF
-   // if(f != NULL)
-     //   fclose(f);
+    //if(song_file != NULL)
+      //  fclose(song_file);
 
     if(player != NULL)
         delete player;
     
     player = NULL;
     decoded_file = NULL;
-    f = NULL;
+    song_file = NULL;
     dec = NULL;
     
 }
@@ -78,39 +77,33 @@ const char* song::get_encoding() const
 	return this->encoding;
 }
 
+void start_thread(song& s){
+    s.player->begin();
+    s.clear_song();
+    printf("end of thread\n");
+    //throw end_of_song_exception();
+}
+
 void song::start()
 {
     if(player == NULL)
-        decode_song();
+        load_song();
 
-    try{
-        player->begin();
-        printf("4\n");
-        #ifdef PLAY_J01D18YC
-        printf("5\n");
-        wait(NULL);
-        #endif
-        printf("ffdf\n");
-    } catch ( playbackend_except &e){
-        //NO IDEA WHAT TO DO HERE YET
-        printf("ffffff\n");
-    }
-
+    t = new std::thread(&start_thread, std::ref(*this));
+    t->detach();
 }
 
 void song::pause()
 {
-    if(player == NULL)
-        throw player_not_found_exception();
-    player->toggle_pause();
+    if(player != NULL)
+        //throw player_not_found_exception();
+        player->toggle_pause();
 }
 
 void song::stop()
 {
-    if(player == NULL)
-        throw player_not_found_exception();
-    player->stop();
-    //TODO
-    clear_song();
+    if(player != NULL)
+        //throw player_not_found_exception();
+        player->stop();
 }
 

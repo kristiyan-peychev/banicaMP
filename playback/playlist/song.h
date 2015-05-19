@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdio>
 #include <exception>
+#include <thread>
 
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
@@ -26,6 +27,13 @@ public:
     virtual const char* what() const throw()
     {
         return "Cannot read tags";
+    }
+};
+class end_of_song_exception : public std::exception {
+public:
+    virtual const char* what() const throw()
+    {
+        return "End of song";
     }
 };
 
@@ -69,18 +77,18 @@ class song{
 private:
   	song_info info;
 	char* path;
-    char tmp_file_name[L_tmpnam];
 	const char* encoding;
 	decoder* dec;
     FILE* decoded_file;
-    FILE* f;
+    FILE* song_file;
     play_wav* player;
+    std::thread* t;
 
-    void decode_song();
+    void load_song();
     void clear_song();
 
 public:
-	song(const char*);
+	song(const char* );
 	~song();
     
 
@@ -92,6 +100,8 @@ public:
     void start();
     void pause();
     void stop();
+
+    friend void start_thread(song&);
 };
 
 #endif
