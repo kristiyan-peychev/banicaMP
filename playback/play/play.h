@@ -3,7 +3,6 @@
 #define PLAY_6T2G7RPS
 
 /* TODO:
- * rewind
  * alter speed
  */
 
@@ -28,6 +27,7 @@ public:
 	virtual void pause(void) = 0;
 	virtual void toggle_pause(void) = 0;
 	virtual void stop(void) = 0;
+    virtual void rewind(int) = 0;
 private:
 	play_wav &operator=(const play_wav &) { return *this; }
 	play_wav(const play_wav &) { }

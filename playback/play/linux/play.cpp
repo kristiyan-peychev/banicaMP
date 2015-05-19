@@ -4,12 +4,15 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
 #include <cstdio>
 #include <exception>
-//#include <thread>
+
+#define PARENT_PIPE_NAME "banica_player_chld_ctl_fifo"
 
 static const char *aplay_args[] = {
 	"/aplay", // executable name
@@ -32,8 +35,11 @@ alsa_wav_player::alsa_wav_player(const alsa_wav_player &) { }
 alsa_wav_player &alsa_wav_player::operator=(const alsa_wav_player &) { return *this; }
 
 alsa_wav_player::alsa_wav_player(FILE *filep) :
-		is_paused(true), filedsc(fileno(filep)), childpid(0)
-{ }
+		is_paused(true), filedsc(fileno(filep)), childpid(0), child_pipe(0)
+{
+    //mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
+    //child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
+}
 
 alsa_wav_player::alsa_wav_player(int fd) :
 		is_paused(true), filedsc(fd), childpid(0)
@@ -42,6 +48,8 @@ alsa_wav_player::alsa_wav_player(int fd) :
 alsa_wav_player::~alsa_wav_player(void)
 {
 	stop();
+    if (child_pipe)
+        close(child_pipe);
 }
 
 void alsa_wav_player::begin(void)
@@ -50,6 +58,8 @@ void alsa_wav_player::begin(void)
 
 	if (childpid) {
 		is_paused = false;
+        mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
+        child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
         wait(NULL); // FIXME?
 		// LOLDIS
         #if 0
@@ -124,6 +134,15 @@ void alsa_wav_player::stop(void)
 {
 	if (childpid)
 		kill(childpid, SIGKILL);
+}
+
+void alsa_wav_player::rewind(int random_number_l3l)
+{
+    if (write(child_pipe, &random_number_l3l, sizeof(random_number_l3l)) < 0) {
+        fprintf(stderr, "Failed to write.\n");
+        return;
+    }
+    kill(childpid, SIGINT);
 }
 
 extern "C" play_wav *get_player(FILE *file)
