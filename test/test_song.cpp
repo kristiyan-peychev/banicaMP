@@ -1,5 +1,7 @@
 #include "../playback/playlist/song.h"
 #include <cstdio>
+#include <cstdlib>
+#include <unistd.h>
 
 
 #define MP3_SONG_PATH "/home/nikolay/ACDC - Whole Lotta Rosie.mp3"
@@ -8,11 +10,18 @@
 
 int main(int argc, const char *argv[]) {
 	song mp3(MP3_SONG_PATH);
-    song flac(FLAC_SONG_PATH);
-    printf("%s\n", flac.get_path());
-    printf("%s\n", mp3.get_encoding());
-    printf("%s\n", flac.get_encoding());
-    flac.start();
+    song* flac = new song(FLAC_SONG_PATH);
+    flac->start();
+    sleep(5);
+    flac->pause();
+    sleep(2);
+    flac->pause();
+    sleep(5);
+    flac->stop();
+    delete flac;
+    mp3.start();
+    sleep(20);
+    mp3.stop();
 
     return 0;    
 }
