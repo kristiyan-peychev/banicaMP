@@ -2623,7 +2623,7 @@ static void end_au(int fd)
 static void header(int rtype, char *name)
 { /* Unneeded in out case, we will always be in quiet mode */
     return;
-    #if 0
+    /*#if 0*/
     if (!quiet_mode) {
         if (! name)
             name = (stream == SND_PCM_STREAM_PLAYBACK) ? "stdout" : "stdin";
@@ -2641,7 +2641,7 @@ static void header(int rtype, char *name)
             fprintf(stderr, _("Channels %i"), hwparams.channels);
         fprintf(stderr, "\n");
     }
-    #endif
+    /*#endif*/
 }
 
 /* playing raw data */
@@ -2725,7 +2725,9 @@ static void playback(char *name)
     fd = fileno(stdin);
     name = "stdin";
     /* read the file header */
-    #if 0
+
+    /* NOTE: We apparently need this */
+    /*#if 0*/
     dta = sizeof(AuHeader);
     if ((size_t)safe_read(fd, audiobuf, dta) != dta) {
         error(_("read error"));
@@ -2748,7 +2750,7 @@ static void playback(char *name)
         voc_play(fd, ofs, name);
         goto __end;
     }
-    #endif
+    /*#endif*/
     /* read bytes for WAVE-header */
     if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
         pbrec_count = calc_count();
