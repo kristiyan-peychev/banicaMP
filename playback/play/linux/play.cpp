@@ -136,7 +136,7 @@ void alsa_wav_player::stop(void)
 		kill(childpid, SIGKILL);
 }
 
-void alsa_wav_player::rewind(int random_number_l3l)
+void alsa_wav_player::seek(int random_number_l3l)
 {
     if (write(child_pipe, &random_number_l3l, sizeof(random_number_l3l)) < 0) {
         fprintf(stderr, "Failed to write.\n");

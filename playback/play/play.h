@@ -27,7 +27,7 @@ public:
 	virtual void pause(void) = 0;
 	virtual void toggle_pause(void) = 0;
 	virtual void stop(void) = 0;
-    virtual void rewind(int) = 0;
+    virtual void seek(int) = 0;
 private:
 	play_wav &operator=(const play_wav &) { return *this; }
 	play_wav(const play_wav &) { }
