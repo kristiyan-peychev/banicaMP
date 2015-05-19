@@ -18,6 +18,7 @@ static const char *aplay_args[] = {
 	"-" // read from stdin
 };
 
+/* unused for now */
 static void throw_end_of_song(int) throw()
 {
 	throw playbackend_except();
@@ -48,7 +49,9 @@ void alsa_wav_player::begin(void)
 
 	if (childpid) {
 		is_paused = false;
+        wait(NULL); // FIXME?
 		// LOLDIS
+        #if 0
 		struct sigaction sa;
 		sa.sa_flags = SA_RESTART;
 		sa.sa_handler = throw_end_of_song;
@@ -57,6 +60,7 @@ void alsa_wav_player::begin(void)
 				perror("sigaction");
 				exit(EXIT_FAILURE);
 		}
+        #endif
 	} else {
 		unsigned int f = 1;
 		char **execarg = new char * [8];
