@@ -77,7 +77,6 @@ class song{
 private:
   	song_info info;
 	char* path;
-    char tmp_file_name[L_tmpnam];
 	const char* encoding;
 	decoder* dec;
     FILE* decoded_file;
@@ -89,7 +88,7 @@ private:
     void clear_song();
 
 public:
-	song(const char*);
+	song(const char* );
 	~song();
     
 

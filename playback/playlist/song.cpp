@@ -14,47 +14,42 @@ song_file(NULL), player(NULL)
 
 song::~song()
 {
+    clear_song();
     if(path != NULL)
 	    delete[] path;
-    clear_song();
 }
 
 void song::load_song()
 {
     if(dec == NULL){
-        song_file = fopen(path, "r+b");
+        song_file = fopen(path, "rb");
         dec = get_decoder(song_file, encoding);
     }
 
     if(player == NULL){
         if(decoded_file == NULL){
-            tmpnam(tmp_file_name);
-            printf("%s\n", tmp_file_name);
-            decoded_file = fopen(tmp_file_name, "w+b");;
+            decoded_file = tmpfile();
             dec->decode(decoded_file);
-            fclose(decoded_file);
-        }
 
-        decoded_file = fopen(tmp_file_name, "r+b");
+        }
+        rewind(decoded_file);
         player = get_player(decoded_file);
-            }
+    }
 }
 
 void song::clear_song()
 {
     if(decoded_file != NULL){
         fclose(decoded_file);
-        remove(tmp_file_name);
     }
     if(dec != NULL)
         delete dec;
+
     //CAUSES DOUBLE FREE OR CORRUPTION
     //WTF
-   // if(f != NULL)
-     //   fclose(f);
-    
     //if(song_file != NULL)
       //  fclose(song_file);
+
     if(player != NULL)
         delete player;
     
@@ -85,6 +80,7 @@ const char* song::get_encoding() const
 void start_thread(song& s){
     s.player->begin();
     s.clear_song();
+    printf("end of thread\n");
     //throw end_of_song_exception();
 }
 
@@ -95,19 +91,18 @@ void song::start()
 
     t = new std::thread(&start_thread, std::ref(*this));
     t->detach();
-    printf("%d fff\n",t->joinable());
 }
 
 void song::pause()
 {
-    //if(player == NULL)
+    if(player != NULL)
         //throw player_not_found_exception();
         player->toggle_pause();
 }
 
 void song::stop()
 {
-    //if(player == NULL)
+    if(player != NULL)
         //throw player_not_found_exception();
         player->stop();
 }
