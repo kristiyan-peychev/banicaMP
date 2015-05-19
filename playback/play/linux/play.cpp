@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
