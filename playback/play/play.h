@@ -33,12 +33,10 @@ private:
 	play_wav(const play_wav &) { }
 };
 
-#if 0
 #if defined(linux)
 #include "linux/play.h"
 #elif defined(WIN32)
 #error KUR ZA WINDOWS
-#endif
 #endif
 
 extern "C" play_wav *get_player(FILE *);
