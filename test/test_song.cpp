@@ -17,12 +17,14 @@ int main(int argc, const char *argv[]) {
     flac->pause();
     sleep(T);
     flac->pause();
+    //flac->seek(10);
     sleep(T);
     flac->stop();
     delete flac;
     mp3.start();
     sleep(T);
     mp3.stop();
+    sleep(T);
 
     return 0;    
 }

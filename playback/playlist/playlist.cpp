@@ -1,5 +1,7 @@
 #include "playlist.h"
 
+Observer observer;
+
 playlist::playlist(const char* path, bool is_playlist)
 {
     if(path){
@@ -52,6 +54,11 @@ void playlist::print_songs()
 }
 
 void playlist::load(const char* path)
+{
+
+}
+
+void playlist::play_next_song()
 {
 
 }

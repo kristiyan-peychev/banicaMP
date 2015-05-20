@@ -2,8 +2,9 @@
 #include "encodings.h"
 #include "sys/wait.h"
 
+
 song::song(const char* p): info(p),path(NULL), dec(NULL), decoded_file(NULL),
-song_file(NULL), player(NULL)
+        song_file(NULL), player(NULL)
 {
 	
 	path = new char[strlen(p)+1];
@@ -77,11 +78,13 @@ const char* song::get_encoding() const
 	return this->encoding;
 }
 
-void start_thread(song& s){
+void start_thread(song& s)
+{
     s.player->begin();
     s.clear_song();
     printf("end of thread\n");
     //throw end_of_song_exception();
+    observer.play_next_song();
 }
 
 void song::start()
@@ -90,7 +93,7 @@ void song::start()
         load_song();
 
     t = new std::thread(&start_thread, std::ref(*this));
-    t->detach();
+    //t->detach();
 }
 
 void song::pause()
@@ -107,3 +110,9 @@ void song::stop()
         player->stop();
 }
 
+//BUGGED
+void song::seek(int secs)
+{
+    if(player != NULL)
+        player->seek(44100*16*secs);
+}

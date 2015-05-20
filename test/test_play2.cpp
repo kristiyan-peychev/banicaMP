@@ -1,4 +1,4 @@
-#include "../play.h"
+#include "../playback/play/play.h"
 
 #define WAV_FPATH "/home/kawaguchi/test.wav"
 
@@ -22,7 +22,7 @@ int main(int argc, const char *argv[]) {
     fprintf(stderr, "Begin?\n");
 	sleep(10);
     fprintf(stderr, "wtf?\n");
-    player->rewind(9900000);
+    player->seek(9900000);
 	sleep(10);
     player->stop();
 return 0;
