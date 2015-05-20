@@ -354,6 +354,7 @@ static void signal_handler(int sig)
     if (in_aborting)
         return;
 
+    close(parent_pipe);
     in_aborting = 1;
     if (verbose==2)
         putchar('\n');

@@ -48,8 +48,7 @@ alsa_wav_player::alsa_wav_player(int fd) :
 alsa_wav_player::~alsa_wav_player(void)
 {
 	stop();
-    if (child_pipe)
-        close(child_pipe);
+    close(child_pipe);
 }
 
 void alsa_wav_player::begin(void)
@@ -132,8 +131,10 @@ void alsa_wav_player::toggle_pause(void)
 
 void alsa_wav_player::stop(void)
 {
-	if (childpid)
+	if (childpid) {
 		kill(childpid, SIGKILL);
+        childpid = 0;
+    }
 }
 
 void alsa_wav_player::seek(int random_number_l3l)
