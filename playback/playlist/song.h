@@ -13,6 +13,8 @@
 #include "../../decode/decoder.h"
 #include "../../decode/get.h"
 #include "../play/play.h"
+#include "playlist.h"
+
 
 class player_not_found_exception : public std::exception {
 public:
@@ -100,6 +102,7 @@ public:
     void start();
     void pause();
     void stop();
+    void seek(int);
 
     friend void start_thread(song&);
 };

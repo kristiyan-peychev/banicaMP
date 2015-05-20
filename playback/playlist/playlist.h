@@ -1,13 +1,14 @@
 #ifndef PLAYLIST_H
 #define PLAYLIST_H
 
-#include "../../vector/vector.hpp"
+#include "vector/vector.hpp"
 #include "song.h"
 #include "tinydir.h"
 #include "encodings.h"
 
+class song;
 
-class playlist{
+class playlist {
 private:
     vector<song*> list;
 
@@ -18,6 +19,7 @@ public:
     ~playlist();
 
     void play_song(int);
+    void play_next_song();
     void pause_song(int);
     void stop_song(int);
     void remove_song(int);
@@ -30,5 +32,31 @@ public:
 
 
 };
+
+class Observer{
+private:
+    playlist* list;
+
+public:
+    Observer(playlist* l = NULL): list(l){}
+
+    void set_playlist(playlist* l)
+    {
+        list = l;
+    }
+
+    void play_next_song() const
+    {
+        if(list == NULL)
+            printf("END OF SONG!!\n");
+        else
+            list->play_next_song();
+    }
+
+
+};
+
+extern Observer observer;
+
 
 #endif
