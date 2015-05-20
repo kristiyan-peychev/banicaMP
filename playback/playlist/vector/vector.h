@@ -27,6 +27,7 @@ public:
     void pop_back();
     void remove(int);
     void insert(const T&, int);
+    int find(T&);
 
     T& operator[](int);
 

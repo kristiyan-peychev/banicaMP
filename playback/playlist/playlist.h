@@ -1,6 +1,9 @@
 #ifndef PLAYLIST_H
 #define PLAYLIST_H
 
+#include <cstdlib>
+#include <ctime>
+
 #include "vector/vector.hpp"
 #include "song.h"
 #include "tinydir.h"
@@ -9,8 +12,15 @@
 class song;
 
 class playlist {
-private:
+//private:
+public:
+    song* s;
     vector<song*> list;
+    vector<int> queue;
+    int size;
+    int curr_song;
+    int queue_pos;
+    bool playing_now;
 
     void generate(const char*);
 
@@ -20,15 +30,17 @@ public:
 
     void play_song(int);
     void play_next_song();
-    void pause_song(int);
-    void stop_song(int);
+    void pause_song();
+    void stop_song();
     void remove_song(int);
-    void add_song(int);
+    void add_song(const char*);
+    void add_song(song*);
 
     void load(const char*);
     void save(const char*);
 
     void print_songs();
+    void shuffle();
 
 
 };

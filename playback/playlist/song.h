@@ -85,6 +85,7 @@ private:
     FILE* song_file;
     play_wav* player;
     std::thread* t;
+    bool manual_stop;
 
     void load_song();
     void clear_song();

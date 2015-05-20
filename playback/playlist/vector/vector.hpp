@@ -18,7 +18,8 @@ vector<T>::vector(const vector &o)
 }
 
 template<typename T>
-vector<T>& vector<T>::operator= (const vector &o){
+vector<T>& vector<T>::operator=(const vector &o)
+{
     if(this !=&o){
         copy(o);
     }
@@ -26,27 +27,32 @@ vector<T>& vector<T>::operator= (const vector &o){
 }
 
 template<typename T>
-vector<T>::~vector(){
+vector<T>::~vector()
+{
     destroy();
 }
 
 
 template<typename T>
-void vector<T>::copy(const vector &o){
+void vector<T>::copy(const vector &o)
+{
     m_arr=new T[o.m_capacity];
     m_size=o.m_size;
     m_capacity=o.m_capacity;
-    for(int i=0;i<m_size;i++)
+
+    for(size_t i=0; i<m_size; i++)
         m_arr[i]=o.m_arr[i];
 }
 
 template<typename T>
-void vector<T>::destroy(){
+void vector<T>::destroy()
+{
     delete[] m_arr;
 }
 
 template<typename T>
-void vector<T>::resize(bool grow ){
+void vector<T>::resize(bool grow )
+{
     int new_cap;
     if(grow)
         new_cap=2*m_capacity;
@@ -55,8 +61,10 @@ void vector<T>::resize(bool grow ){
 
     T* tmp=m_arr;
     m_arr=new T[new_cap];
-    for(int i=0;i<m_size;i++)
+
+    for(size_t i=0; i<m_size; i++)
         m_arr[i]=tmp[i];
+        
     delete[] tmp;
     m_capacity=new_cap;
 
@@ -64,14 +72,16 @@ void vector<T>::resize(bool grow ){
 
 
 template<typename T>
-void vector<T>::push_back(const T& a){
+void vector<T>::push_back(const T& a)
+{
     if(m_size==m_capacity)
         resize();
     m_arr[m_size++]=a;
 }
 
 template<typename T>
-T& vector<T>::operator[](int i){
+T& vector<T>::operator[](int i)
+{
     if(i>=0 && i<m_size)
         return m_arr[i];
     throw std::out_of_range("blah");
@@ -79,37 +89,51 @@ T& vector<T>::operator[](int i){
 
 
 template<typename T>
-void vector<T>::pop_back(){
+void vector<T>::pop_back()
+{
    m_size--;
    if(m_size <= m_capacity/4)
        resize(false);
 }
 
 template<typename T>
-void vector<T>::insert(const T& elem, int idx){
+void vector<T>::insert(const T& elem, int idx)
+{
     if(idx < 0 || idx >= m_size)
         throw std::out_of_range("blah");
 
     if(m_size == m_capacity)
         resize();
 
-    for(int i = idx; i < m_size-1; i++)
+    for(size_t i = idx; i < m_size-1; i++)
         m_arr[i+1] = m_arr[i];
     m_arr[idx] = elem;
     m_size++;
 }
 
 template<typename T>
-void vector<T>::remove(int idx){
+void vector<T>::remove(int idx)
+{
     if(idx < 0 || idx >= m_size)
         throw std::out_of_range("blah");
 
-    for(int i = idx +1; i < m_size; i++)
+    for(size_t i = idx +1; i < m_size; i++)
         m_arr[i-1] = m_arr[i];
     m_size--;
 
     if(m_size <= m_capacity/4)
         resize(false);
 }
+
+template<typename T>
+int vector<T>::find(T& elem)
+{
+    for(size_t i = 0; i < m_size; i++){
+        if(m_arr[i] == elem)
+            return i;
+    }
+    return -1;
+}
+
 #endif
 

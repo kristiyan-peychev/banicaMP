@@ -4,7 +4,7 @@
 
 
 song::song(const char* p): info(p),path(NULL), dec(NULL), decoded_file(NULL),
-        song_file(NULL), player(NULL)
+        song_file(NULL), player(NULL), manual_stop(false)
 {
 	
 	path = new char[strlen(p)+1];
@@ -80,20 +80,24 @@ const char* song::get_encoding() const
 
 void start_thread(song& s)
 {
+    printf("%s\n",s.path);
     s.player->begin();
     s.clear_song();
     printf("end of thread\n");
     //throw end_of_song_exception();
-    observer.play_next_song();
+    if(!s.manual_stop)
+        observer.play_next_song();
 }
 
 void song::start()
 {
-    if(player == NULL)
+    //printf("%s\n", path);
+    //if(player == NULL)
         load_song();
 
+    manual_stop = false;
     t = new std::thread(&start_thread, std::ref(*this));
-    //t->detach();
+    t->detach();
 }
 
 void song::pause()
@@ -105,14 +109,15 @@ void song::pause()
 
 void song::stop()
 {
-    if(player != NULL)
+    if(player != NULL){
         //throw player_not_found_exception();
         player->stop();
+        manual_stop = true;
+    }
 }
 
-//BUGGED
 void song::seek(int secs)
 {
     if(player != NULL)
-        player->seek(44100*16*secs);
+        player->seek(44100*2*secs);
 }
