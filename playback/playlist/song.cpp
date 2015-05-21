@@ -80,18 +80,17 @@ const char* song::get_encoding() const
 
 void start_thread(song& s)
 {
-    printf("%s\n",s.path);
     s.player->begin();
     s.clear_song();
-    printf("end of thread\n");
     //throw end_of_song_exception();
     if(!s.manual_stop)
         observer.play_next_song();
+    printf("end of thread\n");
 }
 
 void song::start()
 {
-    //printf("%s\n", path);
+    printf("%s\n", info.title.toCString(true));
     //if(player == NULL)
         load_song();
 
@@ -103,16 +102,14 @@ void song::start()
 void song::pause()
 {
     if(player != NULL)
-        //throw player_not_found_exception();
         player->toggle_pause();
 }
 
 void song::stop()
 {
     if(player != NULL){
-        //throw player_not_found_exception();
-        player->stop();
         manual_stop = true;
+        player->stop();
     }
 }
 

@@ -56,21 +56,27 @@ struct song_info{
 
 		TagLib::FileRef f(path);
         
-        if(f.isNull() || !f.tag() || !f.audioProperties()){
-            throw tags_missing_exception();
+        if(f.isNull() || !f.tag()){
+            title = TagLib::String(path);
+            artist = album = genre = "";
+            //throw tags_missing_exception();
+        }
+        else{
+            TagLib::Tag* tag = f.tag();
+            title = tag->title();
+            artist = tag->artist();
+            album = tag->artist();
+            year = tag->year();
+            genre = tag->genre();
         }
 
-		TagLib::AudioProperties* properties = f.audioProperties();
-		TagLib::Tag* tag = f.tag();
-        title = tag->title();
-        artist = tag->artist();
-        album = tag->artist();
-        year = tag->year();
-        genre = tag->genre();
-        bitrate = properties->bitrate();
-        sample_rate = properties->sampleRate();
-        channels = properties->channels();
-        length = properties->length();
+        if(f.audioProperties()){
+            TagLib::AudioProperties* properties = f.audioProperties();
+            bitrate = properties->bitrate();
+            sample_rate = properties->sampleRate();
+            channels = properties->channels();
+            length = properties->length();
+        }
 	}
 };
 

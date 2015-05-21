@@ -14,7 +14,6 @@ class song;
 class playlist {
 //private:
 public:
-    song* s;
     vector<song*> list;
     vector<int> queue;
     int size;
@@ -32,6 +31,8 @@ public:
     void play_next_song();
     void pause_song();
     void stop_song();
+    void seek(int);
+
     void remove_song(int);
     void add_song(const char*);
     void add_song(song*);

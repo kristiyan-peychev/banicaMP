@@ -36,7 +36,6 @@ void playlist::generate(const char* path)
 
         if(strcmp(get_file_encoding(file.path), "UNKNOWN") ){
             song* tmp = new song(file.path);
-            s = tmp;
             list.push_back(std::ref(tmp));
             queue.push_back(size++);
         }
@@ -68,19 +67,24 @@ void playlist::load(const char* path)
 void playlist::save(const char* path)
 {
 }
-// FROM HERE ON THE CODE IS STUPID
-// PLEASE DON'T JUDGE ME (MUCH)
+
 void playlist::play_song(int pos)
 {
-    stop_song();
+    if(playing_now)
+       stop_song();
     curr_song = pos;
+    queue_pos = queue.find(pos);
     list[curr_song]->start();
+    playing_now = true;
     
 }
 
 void playlist::play_next_song()
 {
-    curr_song = queue[queue_pos++];
+    if(playing_now)
+        stop_song();
+    queue_pos = (queue_pos + 1) % size;
+    curr_song = queue[queue_pos];
     play_song(curr_song);
 }
 
@@ -92,8 +96,16 @@ void playlist::pause_song()
 
 void playlist::stop_song()
 {
+    if(playing_now){
+        list[curr_song]->stop();
+        playing_now = false;
+    }
+}
+//bugged
+void playlist::seek(int secs)
+{
     if(playing_now)
-        list[curr_song]->pause();
+        list[curr_song]->seek(secs);
 }
 
 void playlist::remove_song(int pos)
