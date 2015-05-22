@@ -135,5 +135,14 @@ int vector<T>::find(T& elem)
     return -1;
 }
 
+template<typename T>
+void vector<T>::sort(bool (*comp)(const T&, const T&))
+{
+    if(comp != NULL)
+        std::stable_sort(m_arr, m_arr + m_size, comp);
+    else
+        std::stable_sort(m_arr, m_arr + m_size);
+}
+
 #endif
 

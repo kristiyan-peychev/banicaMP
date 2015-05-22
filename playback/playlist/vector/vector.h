@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include <cstdio>
+#include <algorithm>
 
 template<typename T>
 class vector {
@@ -28,6 +29,8 @@ public:
     void remove(int);
     void insert(const T&, int);
     int find(T&);
+
+    void sort(bool (*comp)(const T&, const T& )=NULL);
 
     T& operator[](int);
 
