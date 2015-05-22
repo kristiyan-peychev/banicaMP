@@ -10,13 +10,14 @@ void print_help(){
     printf("pause - pauses current song\n");
     printf("seek  <num_secs> - go forward(backward) by num_secs\n");
     printf("stop - stops current song\n");
+    printf("shuffle - toggles shuffle\n");
+    printf("repeat - toggles repeat\n");
     printf("quit - Exit the program\n");
 }
 
 int main(){
     playlist p("/media/win/Music/Avengers OST");
     observer.set_playlist(&p);
-    p.shuffle();
     p.print_songs();
     char command[20];
     int a;
@@ -33,9 +34,12 @@ int main(){
         else if(!strcmp(command, "seek")){
             scanf("%d", &a); 
             p.seek(a);
-            //p.play_next_song();
         }else if(!strcmp(command, "stop"))
             p.stop_song();
+        else if(!strcmp(command, "shuffle"))
+            p.toggle_shuffle();
+        else if(!strcmp(command, "repeat"))
+            p.toggle_repeat();
         else if(!strcmp(command, "help"))
             print_help();
         else if(!strcmp(command, "quit"))
