@@ -12,16 +12,19 @@
 class song;
 
 class playlist {
-//private:
-public:
+private:
     vector<song*> list;
     vector<int> queue;
     int size;
     int curr_song;
     int queue_pos;
     bool playing_now;
+    bool repeat;
+    bool shuffle;
 
     void generate(const char*);
+    
+    bool comp_song(const song&, const song&, char);
 
 public:
     playlist(const char* =NULL, bool=false);
@@ -41,7 +44,10 @@ public:
     void save(const char*);
 
     void print_songs();
-    void shuffle();
+    void shuffle_list();
+
+    void toggle_repeat();
+    void toggle_shuffle();
 
 
 };

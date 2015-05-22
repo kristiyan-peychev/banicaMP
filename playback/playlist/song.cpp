@@ -82,7 +82,6 @@ void start_thread(song& s)
 {
     s.player->begin();
     s.clear_song();
-    //throw end_of_song_exception();
     if(!s.manual_stop)
         observer.play_next_song();
     printf("end of thread\n");
@@ -91,11 +90,10 @@ void start_thread(song& s)
 void song::start()
 {
     printf("%s\n", info.title.toCString(true));
-    //if(player == NULL)
-        load_song();
+    load_song();
 
     manual_stop = false;
-    t = new std::thread(&start_thread, std::ref(*this));
+    t = new std::thread(start_thread, std::ref(*this));
     t->detach();
 }
 
@@ -115,6 +113,8 @@ void song::stop()
 
 void song::seek(int secs)
 {
-    if(player != NULL)
+    if(player != NULL){
         player->seek(44100*2*secs);
+        printf("kurec\n");
+    }
 }

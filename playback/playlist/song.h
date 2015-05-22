@@ -51,33 +51,33 @@ struct song_info{
     int length;
 
 
-	song_info(const char* path)
+	song_info(const char* path):title(path), artist(""), album(""), genre(""),
+            year(0), bitrate(0), sample_rate(0), channels(1), length(0)
 	{
 
 		TagLib::FileRef f(path);
-        
-        if(f.isNull() || !f.tag()){
-            title = TagLib::String(path);
-            artist = album = genre = "";
-            //throw tags_missing_exception();
-        }
-        else{
-            TagLib::Tag* tag = f.tag();
-            title = tag->title();
-            artist = tag->artist();
-            album = tag->artist();
-            year = tag->year();
-            genre = tag->genre();
-        }
 
-        if(f.audioProperties()){
-            TagLib::AudioProperties* properties = f.audioProperties();
-            bitrate = properties->bitrate();
-            sample_rate = properties->sampleRate();
-            channels = properties->channels();
-            length = properties->length();
+        if (f.isNull())
+            perror("Cannot read tags\n");
+        else{
+            if(f.tag()){
+                TagLib::Tag* tag = f.tag();
+                title = tag->title();
+                artist = tag->artist();
+                album = tag->artist();
+                year = tag->year();
+                genre = tag->genre();
+            }
+
+            if(f.audioProperties()){
+                TagLib::AudioProperties* properties = f.audioProperties();
+                bitrate = properties->bitrate();
+                sample_rate = properties->sampleRate();
+                channels = properties->channels();
+                length = properties->length();
+            }
         }
-	}
+    }
 };
 
 
