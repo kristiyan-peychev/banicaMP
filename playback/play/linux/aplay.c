@@ -297,8 +297,16 @@ int main(int argc, char *argv[])
         perror("sigaction");
         exit(EXIT_FAILURE);
     }
-
-    const struct option long_options[] = {
+    static const struct option long_options[] = {
+        {"help", 0, 0, 'h'},
+        {"list-devnames", 0, 0, 'n'},
+        {"list-devices", 0, 0, 'l'},
+        {"list-pcms", 0, 0, 'L'},
+        {"device", 1, 0, 'D'},
+        {"quiet", 0, 0, 'q'},
+        {"file-type", 1, 0, 't'},
+        {"channels", 1, 0, 'c'},
+        {"format", 1, 0, 'f'},
         {"rate", 1, 0, 'r'},
         {"duration", 1, 0 ,'d'},
         {"mmap", 0, 0, 'M'},
@@ -308,15 +316,16 @@ int main(int argc, char *argv[])
         {"start-delay", 1, 0, 'R'},
         {"stop-delay", 1, 0, 'T'},
         {"buffer-time", 1, 0, 'B'},
+        {"verbose", 0, 0, 'v'},
         {"vumeter", 1, 0, 'V'},
-#ifdef CONFIG_SUPPORT_CHMAP
-        {"chmap", 1, 0, 'm'},
-#endif
+        {"separate-channels", 0, 0, 'I'},
+        {"playback", 0, 0, 'P'},
+        {"capture", 0, 0, 'C'},
+/*#ifdef CONFIG_SUPPORT_CHMAP*/
+        /*{"chmap", 1, 0, 'm'},*/
+/*#endif*/
         {0, 0, 0, 0}
     };
-    mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
-    parent_pipe = open(PARENT_PIPE_NAME, O_RDONLY);
-
     char *pcm_name = "default";
     int tmp, err, c;
     snd_pcm_info_t *info;
@@ -332,6 +341,7 @@ int main(int argc, char *argv[])
     err = snd_output_stdio_attach(&log, stderr, 0);
     assert(err >= 0);
 
+    command = argv[0];
     file_type = FORMAT_DEFAULT;
     stream = SND_PCM_STREAM_PLAYBACK;
     command = "aplay";
@@ -347,11 +357,48 @@ int main(int argc, char *argv[])
         case 'D':
             pcm_name = optarg;
             break;
+        case 'q':
+            quiet_mode = 1;
+            break;
+        case 't':
+            if (strcasecmp(optarg, "raw") == 0)
+                file_type = FORMAT_RAW;
+            else if (strcasecmp(optarg, "voc") == 0)
+                file_type = FORMAT_VOC;
+            else if (strcasecmp(optarg, "wav") == 0)
+                file_type = FORMAT_WAVE;
+            else if (strcasecmp(optarg, "au") == 0 || strcasecmp(optarg, "sparc") == 0)
+                file_type = FORMAT_AU;
+            else {
+                error(_("unrecognized file format %s"), optarg);
+                return 1;
+            }
+            break;
         case 'c':
             rhwparams.channels = strtol(optarg, NULL, 0);
             if (rhwparams.channels < 1 || rhwparams.channels > 256) {
                 error(_("value %i for channels is invalid"), rhwparams.channels);
                 return 1;
+            }
+            break;
+        case 'f':
+            if (strcasecmp(optarg, "cd") == 0 || strcasecmp(optarg, "cdr") == 0) {
+                if (strcasecmp(optarg, "cdr") == 0)
+                    rhwparams.format = SND_PCM_FORMAT_S16_BE;
+                else
+                    rhwparams.format = file_type == FORMAT_AU ? SND_PCM_FORMAT_S16_BE : SND_PCM_FORMAT_S16_LE;
+                rhwparams.rate = 44100;
+                rhwparams.channels = 2;
+            } else if (strcasecmp(optarg, "dat") == 0) {
+                rhwparams.format = file_type == FORMAT_AU ? SND_PCM_FORMAT_S16_BE : SND_PCM_FORMAT_S16_LE;
+                rhwparams.rate = 48000;
+                rhwparams.channels = 2;
+            } else {
+                rhwparams.format = snd_pcm_format_value(optarg);
+                if (rhwparams.format == SND_PCM_FORMAT_UNKNOWN) {
+                    error(_("wrong extended format '%s'"), optarg);
+                    prg_exit(EXIT_FAILURE);
+                }
             }
             break;
         case 'r':
@@ -386,6 +433,11 @@ int main(int argc, char *argv[])
         case 'T':
             stop_delay = strtol(optarg, NULL, 0);
             break;
+        case 'v':
+            verbose++;
+            if (verbose > 1 && !vumeter)
+                vumeter = VUMETER_MONO;
+            break;
         case 'V':
             if (*optarg == 's')
                 vumeter = VUMETER_STEREO;
@@ -397,6 +449,20 @@ int main(int argc, char *argv[])
         case 'M':
             mmap_flag = 1;
             break;
+        case 'I':
+            interleaved = 0;
+            break;
+        case 'P':
+            stream = SND_PCM_STREAM_PLAYBACK;
+            command = "aplay";
+            break;
+        case 'C':
+            stream = SND_PCM_STREAM_CAPTURE;
+            command = "arecord";
+            start_delay = 1;
+            if (file_type == FORMAT_DEFAULT)
+                file_type = FORMAT_WAVE;
+            break;
 #ifdef CONFIG_SUPPORT_CHMAP
         case 'm':
             channel_map = snd_pcm_chmap_parse_string(optarg);
@@ -407,14 +473,10 @@ int main(int argc, char *argv[])
             break;
 #endif
         default:
+            fprintf(stderr, _("Try `%s --help' for more information.\n"), command);
             return 1;
         }
     }
-    quiet_mode = 1;
-    file_type = FORMAT_WAVE;
-    rhwparams.format = SND_PCM_FORMAT_S16_LE;
-    rhwparams.rate = 44100;
-    rhwparams.channels = 2;
 
     err = snd_pcm_open(&handle, pcm_name, stream, open_mode);
     if (err < 0) {
@@ -468,6 +530,20 @@ int main(int argc, char *argv[])
                 pidfile_name, strerror (errno));
             return 1;
         }
+    }
+
+    /*signal(SIGINT, signal_handler);*/
+    /*signal(SIGUSR1, signal_handler_recycle);*/
+    signal(SIGTERM, signal_handler);
+    signal(SIGABRT, signal_handler);
+
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(EXIT_FAILURE);
+    }
+    if (sigaction(SIGINT, &sb, NULL) == -1) {
+        perror("sigaction");
+        exit(EXIT_FAILURE);
     }
 
     if (interleaved) {

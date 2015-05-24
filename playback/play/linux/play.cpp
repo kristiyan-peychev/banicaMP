@@ -16,10 +16,10 @@
 
 static const char *aplay_args[] = {
 	"/aplay", // executable name
-	//"-f", "cd", // 16-bit signed integer
-	//"-t", "wav", // WAVE file
-	//"-q", // quiet mode
-	//"-" // read from stdin
+    "-f", "cd", // 16-bit signed integer
+    "-t", "wav", // WAVE file
+    "-q", // quiet mode
+    "-" // read from stdin
 };
 
 /* unused for now */
