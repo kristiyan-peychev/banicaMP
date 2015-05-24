@@ -2,7 +2,7 @@
 
 Observer observer;
 
-playlist::playlist(const char* path, bool is_playlist): size(0), curr_song(0),
+playlist::playlist(const char* path, bool is_playlist): list(), size(0), curr_song(0),
     queue_pos(0), playing_now(false), repeat(false), shuffle(false)
 {
     if(path){
@@ -11,6 +11,12 @@ playlist::playlist(const char* path, bool is_playlist): size(0), curr_song(0),
         else
             generate(path);
     }
+}
+
+playlist::playlist(): list(), size(0), curr_song(0),
+    queue_pos(0), playing_now(false), repeat(false), shuffle(false)
+
+{
 }
 
 playlist::~playlist()
@@ -33,11 +39,11 @@ void playlist::generate(const char* path)
             tinydir_next(&dir);
             continue;
         }
-
+        
         if( !file.is_dir && strcmp(get_file_encoding(file.path), "UNKNOWN") ){
             add_song(file.path);
         }
-
+        
         if(file.is_dir && strcmp(file.name, ".") && strcmp(file.name, ".."))
             generate(file.path);
         tinydir_next(&dir);
@@ -68,12 +74,20 @@ void playlist::save(const char* path)
 
 void playlist::play_song(int pos)
 {
+    if(pos < 0 || pos > size){
+        perror("Out of range\n");
+        return;
+    }
     if(playing_now)
         stop_song();
     curr_song = pos;
     queue_pos = queue.find(pos);
     list[curr_song]->start();
     playing_now = true;
+
+    //load next song
+    int next_queue_pos = queue[(queue_pos + 1) % size];
+    list[next_queue_pos]->load_song();
 
 }
 
@@ -87,8 +101,9 @@ void playlist::play_next_song()
     }
     queue_pos = (queue_pos + 1) % size;
     curr_song = queue[queue_pos];
+    
     play_song(curr_song);
-}
+   }
 
 void playlist::pause_song()
 {

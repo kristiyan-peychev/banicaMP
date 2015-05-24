@@ -27,6 +27,7 @@ private:
     bool comp_song(const song&, const song&, char);
 
 public:
+    playlist();
     playlist(const char* =NULL, bool=false);
     ~playlist();
 
