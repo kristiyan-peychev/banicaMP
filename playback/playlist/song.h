@@ -93,13 +93,14 @@ private:
     std::thread* t;
     bool manual_stop;
 
-    void load_song();
     void clear_song();
 
 public:
 	song(const char* );
 	~song();
     
+
+    void load_song();
 
     const song_info& get_info() const; 
 	const char* get_path() const;
