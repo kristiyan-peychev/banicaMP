@@ -3,7 +3,7 @@
 Observer observer;
 
 playlist::playlist(const char* path, bool is_playlist): size(0), curr_song(0),
-        queue_pos(0), playing_now(false), repeat(false), shuffle(false)
+    queue_pos(0), playing_now(false), repeat(false), shuffle(false)
 {
     if(path){
         if(is_playlist)
@@ -36,8 +36,8 @@ void playlist::generate(const char* path)
 
         if( !file.is_dir && strcmp(get_file_encoding(file.path), "UNKNOWN") ){
             add_song(file.path);
-                    }
-        
+        }
+
         if(file.is_dir && strcmp(file.name, ".") && strcmp(file.name, ".."))
             generate(file.path);
         tinydir_next(&dir);
@@ -69,12 +69,12 @@ void playlist::save(const char* path)
 void playlist::play_song(int pos)
 {
     if(playing_now)
-       stop_song();
+        stop_song();
     curr_song = pos;
     queue_pos = queue.find(pos);
     list[curr_song]->start();
     playing_now = true;
-    
+
 }
 
 void playlist::play_next_song()
@@ -125,11 +125,12 @@ void playlist::remove_song(int pos)
 void playlist::add_song(const char* path)
 {
     song* new_song = new song(path);
-            //don't add songs without metadata
+    //don't add songs without metadata
     if(new_song->get_info().length != 0){
         list.push_back(std::ref(new_song));
         queue.push_back(size++);
-    }
+    }else
+        delete new_song;
 }
 
 void playlist::add_song(song* s)
