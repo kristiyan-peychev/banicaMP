@@ -208,9 +208,7 @@ static void prg_exit(int code)
         snd_pcm_close(handle);
     if (pidfile_written)
         remove (pidfile_name);
-    fprintf(stderr, "YES??\n");
     exit(code);
-    fprintf(stdout, "Nope.\n");
 }
 
 static void signal_handler(int sig)
@@ -248,7 +246,6 @@ void seek(int signum)
     if (read(parent_pipe, &reed, sizeof(reed)) < 0)
         return;
 
-    fprintf(stderr, "read: %d\n", reed);
     toggle_pause(0);
     if (fseek(stdin, reed, SEEK_CUR))
         fprintf(stderr, "Error recieving seek value\n");

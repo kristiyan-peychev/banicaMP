@@ -55,14 +55,11 @@ void alsa_wav_player::begin(void)
 {
 	childpid = fork();
 
-    fprintf(stderr, "FORKING\n");
 	if (childpid) {
 		is_paused = false;
         mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
         child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
-        fprintf(stderr, "Waiting for child\n");
         wait(NULL); // FIXME?
-        fprintf(stderr, "Child exited\n");
 		// LOLDIS
         #if 0
 		struct sigaction sa;
