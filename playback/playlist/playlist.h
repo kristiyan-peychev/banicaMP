@@ -8,10 +8,21 @@
 #include "song.h"
 #include "tinydir.h"
 #include "encodings.h"
-
-class song;
+#include "../../config/config.h"
 
 class playlist {
+private:
+    class decoded_song_handler {
+    private:
+        config current_configuration;
+        vector<song*> decoded_songs_list;
+    public:
+        decoded_song_handler(void);
+        //decoded_song_handler(const song*, size_t);
+        decoded_song_handler(const vector<song*>&);
+    public:
+        void push(song*) noexcept;
+    } song_handler;
 private:
     vector<song*> list;
     vector<int> queue;

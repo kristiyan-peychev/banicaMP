@@ -15,6 +15,7 @@
 #include "../play/play.h"
 #include "playlist.h"
 
+#define BYTES_PER_SEC 44100 * 2 * 2
 
 class player_not_found_exception : public std::exception {
 public:

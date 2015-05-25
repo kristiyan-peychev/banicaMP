@@ -1,6 +1,29 @@
 #include "playlist.h"
 
-Observer observer;
+static Observer observer;
+
+playlist::decoded_song_handler::decoded_song_handler(void) :
+       configuration(), decoded_songs_list(configuration.get_max_songs())
+{ }
+
+playlist::decoded_song_handler::decoded_song_handler(const vector<song*> &c) :
+        configuration(), decoded_songs_list(c)
+{
+    for (int i = 0; i < configuration.get_min_songs() &&
+            i < decoded_songs_list.size(); i++)
+        decoded_songs_list[i]->load_song();
+}
+
+void playlist::decoded_song_handler::push(song* s) noexcept
+{
+    if (decoded_songs_list.size() >= configuration.get_max_songs()) {
+        decoded_songs_list[0]->clear_song();
+        decoded_songs_list.remove(0);
+    }
+
+    decoded_songs_list.push_back(s);
+    s->load_song();
+}
 
 playlist::playlist(const char* path, bool is_playlist): list(), size(0), curr_song(0),
     queue_pos(0), playing_now(false), repeat(false), shuffle(false)
@@ -86,9 +109,9 @@ void playlist::play_song(int pos)
     playing_now = true;
 
     //load next song
-    int next_queue_pos = queue[(queue_pos + 1) % size];
-    list[next_queue_pos]->load_song();
-
+    //int next_queue_pos = queue[(queue_pos + 1) % size];
+    //list[next_queue_pos]->load_song();
+    song_handler.push(list[next_queue_pos]);
 }
 
 void playlist::play_next_song()
@@ -103,7 +126,7 @@ void playlist::play_next_song()
     curr_song = queue[queue_pos];
     
     play_song(curr_song);
-   }
+}
 
 void playlist::pause_song()
 {
@@ -119,6 +142,7 @@ void playlist::stop_song()
     }
 }
 //bugged
+// Why?!
 void playlist::seek(int secs)
 {
     if(playing_now)

@@ -114,7 +114,7 @@ void song::stop()
 void song::seek(int secs)
 {
     if(player != NULL){
-        player->seek(44100*2*secs);
+        player->seek(BYTES_PER_SEC * secs);
         printf("kurec\n");
     }
 }
