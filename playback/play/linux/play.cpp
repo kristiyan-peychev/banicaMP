@@ -55,11 +55,14 @@ void alsa_wav_player::begin(void)
 {
 	childpid = fork();
 
+    fprintf(stderr, "FORKING\n");
 	if (childpid) {
 		is_paused = false;
         mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
         child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
+        fprintf(stderr, "Waiting for child\n");
         wait(NULL); // FIXME?
+        fprintf(stderr, "Child exited\n");
 		// LOLDIS
         #if 0
 		struct sigaction sa;
@@ -132,13 +135,14 @@ void alsa_wav_player::toggle_pause(void)
 void alsa_wav_player::stop(void)
 {
 	if (childpid) {
-		kill(childpid, SIGKILL);
+		kill(childpid, SIGTERM);
         childpid = 0;
     }
 }
 
 void alsa_wav_player::seek(int random_number_l3l)
 {
+    fprintf(stderr, "Sending %d\n", random_number_l3l);
     if (write(child_pipe, &random_number_l3l, sizeof(random_number_l3l)) < 0) {
         fprintf(stderr, "Failed to write.\n");
         return;

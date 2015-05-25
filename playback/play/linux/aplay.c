@@ -208,16 +208,14 @@ static void prg_exit(int code)
         snd_pcm_close(handle);
     if (pidfile_written)
         remove (pidfile_name);
+    fprintf(stderr, "YES??\n");
     exit(code);
+    fprintf(stdout, "Nope.\n");
 }
 
 static void signal_handler(int sig)
 { /* TODO: remove/edit this? */
-    if (in_aborting)
-        return;
-
     close(parent_pipe);
-    in_aborting = 1;
     if (handle)
         snd_pcm_abort(handle);
     prg_exit(EXIT_FAILURE);
@@ -285,10 +283,7 @@ int main(int argc, char *argv[])
     stest.sa_handler = vol_test;
     sigfillset(&stest.sa_mask);
 
-    /*signal(SIGINT, signal_handler);*/
-    /*signal(SIGUSR1, signal_handler_recycle);*/
     signal(SIGTERM, signal_handler);
-    /*signal(SIGABRT, signal_handler);*/
 
     if (sigaction(SIGUSR1, &sa, NULL) == -1 || 
             sigaction(SIGABRT, &stest, NULL) == -1 || 
@@ -297,6 +292,8 @@ int main(int argc, char *argv[])
         perror("sigaction");
         exit(EXIT_FAILURE);
     }
+    mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
+    parent_pipe = open(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
     static const struct option long_options[] = {
         {"help", 0, 0, 'h'},
         {"list-devnames", 0, 0, 'n'},
