@@ -10,11 +10,13 @@
 #include "encodings.h"
 #include "../../config/config.h"
 
+class song;
+
 class playlist {
 private:
     class decoded_song_handler {
     private:
-        config current_configuration;
+        config configuration;
         vector<song*> decoded_songs_list;
     public:
         decoded_song_handler(void);

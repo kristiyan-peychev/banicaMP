@@ -1,6 +1,6 @@
 #include "playlist.h"
 
-static Observer observer;
+Observer observer;
 
 playlist::decoded_song_handler::decoded_song_handler(void) :
        configuration(), decoded_songs_list(configuration.get_max_songs())
@@ -109,8 +109,8 @@ void playlist::play_song(int pos)
     playing_now = true;
 
     //load next song
-    //int next_queue_pos = queue[(queue_pos + 1) % size];
     //list[next_queue_pos]->load_song();
+    int next_queue_pos = queue[(queue_pos + 1) % size];
     song_handler.push(list[next_queue_pos]);
 }
 

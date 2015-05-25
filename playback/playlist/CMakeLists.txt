@@ -9,7 +9,7 @@ set(SONG_LOCALDEPLIBS ${SONG_LOCALDEPLIBS} ${PROJECT_SOURCE_DIR}/../play/linux/b
 #set(SONG_DEPLIBSLOC ${SONG_DEPLIBSLOC} "../../../decode/build" "../../play/linux/build")
 # NOTE: From a build directory _ONLY_
 
-add_executable(test_song playlist.cpp song.cpp ../../test/test_playlist.cpp) #??
+add_executable(test_song playlist.cpp song.cpp ../../config/config.cpp ../../test/test_playlist.cpp) #??
 
 target_link_libraries(test_song ${SONG_DEPLIBS})
 #link_directories(${SONG_DEPLIBSLOC})
