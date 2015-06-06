@@ -9,19 +9,13 @@
 #define OUT_PATH "/home/kawaguchi/test.wav"
 
 int main(int argc, const char *argv[]) {
-	FILE *file, *KOR;
+	FILE *file, *f;
 	file = fopen(SONG_PATH, "r");
-	KOR = fopen(OUT_PATH, "w");
-	/*
-	int fd1 = open(SONG_PATH, O_RDONLY);
-	int fd2 = open(OUT_PATH, O_WRONLY);
-	file = fdopen(fd1, "r");
-	KOR = fdopen(fd2, "w");
-	*/
+	f = fopen(OUT_PATH, "w");
 	MPEG_decoder test(file);
-	test.decode(KOR);
+	test.decode(f);
 	/*
-	fprintf(KOR, "TEST\n");
+	fprintf(f, "TEST\n");
 	char *p = (char *) malloc(1000 * sizeof(char));
 	int c = 0;
 	while (fread(p, 1, 1000, file)) {
@@ -30,7 +24,7 @@ int main(int argc, const char *argv[]) {
 	}
 	fprintf(stdout, "%d\n", c);
 	*/
-	fclose(KOR);
+	fclose(f);
 	fclose(file);
 return 0;
 }

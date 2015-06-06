@@ -2,14 +2,14 @@
 #include "../decode/get.h"
 #include <cstdio>
 
-#define KOR2 "/home/nikolay/31. Jinsei wa Belt Conveyor no Youni Nagareru.flac"
-#define KOR "/home/nikolay/ACDC - Whole Lotta Rosie.mp3"
-#define OKOR "/home/nikolay/ffdf.wav"
+#define file2 "/home/nikolay/31. Jinsei wa Belt Conveyor no Youni Nagareru.flac"
+#define file "/home/nikolay/ACDC - Whole Lotta Rosie.mp3"
+#define Ofile "/home/nikolay/ffdf.wav"
 
 int main(int argc, const char *argv[]) {
-	FILE *file = fopen(KOR, "r");
-	decoder *what = get_decoder(file, "MP3");
-	FILE *ofile = fopen(OKOR, "w+");
+	FILE *f = fopen(file, "r");
+	decoder *what = get_decoder(f, "MP3");
+	FILE *ofile = fopen(Ofile, "w+");
 	what->decode(ofile);
 return 0;
 }
