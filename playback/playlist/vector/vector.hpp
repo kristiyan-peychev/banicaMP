@@ -21,6 +21,7 @@ template<typename T>
 vector<T>& vector<T>::operator=(const vector &o)
 {
     if(this !=&o){
+        destroy();
         copy(o);
     }
     return *this;
@@ -47,7 +48,8 @@ void vector<T>::copy(const vector &o)
 template<typename T>
 void vector<T>::destroy()
 {
-    delete[] m_arr;
+    if(m_arr != NULL)
+        delete[] m_arr;
 }
 
 template<typename T>
@@ -84,7 +86,7 @@ T& vector<T>::operator[](int i)
 {
     if(i>=0 && i<m_size)
         return m_arr[i];
-    throw std::out_of_range("blah");
+    throw std::out_of_range("index out of range");
 }
 
 
@@ -100,13 +102,14 @@ template<typename T>
 void vector<T>::insert(const T& elem, int idx)
 {
     if(idx < 0 || idx >= m_size)
-        throw std::out_of_range("blah");
+        throw std::out_of_range("index out of range");
 
     if(m_size == m_capacity)
         resize();
 
     for(size_t i = idx; i < m_size-1; i++)
         m_arr[i+1] = m_arr[i];
+
     m_arr[idx] = elem;
     m_size++;
 }
@@ -115,7 +118,7 @@ template<typename T>
 void vector<T>::remove(int idx)
 {
     if(idx < 0 || idx >= m_size)
-        throw std::out_of_range("blah");
+        throw std::out_of_range("index out of range");
 
     for(size_t i = idx +1; i < m_size; i++)
         m_arr[i-1] = m_arr[i];
