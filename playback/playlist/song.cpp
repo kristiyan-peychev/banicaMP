@@ -22,11 +22,13 @@ song::~song()
 
 void song::load_song()
 {
+    //load decoder
     if(dec == NULL){
         song_file = fopen(path, "rb");
         dec = get_decoder(song_file, encoding);
     }
 
+    //load wav player
     if(player == NULL){
         if(decoded_file == NULL){
             decoded_file = tmpfile();

@@ -62,13 +62,15 @@ void playlist::generate(const char* path)
             tinydir_next(&dir);
             continue;
         }
-        
+        //if file is supported add to playlist
         if( !file.is_dir && strcmp(get_file_encoding(file.path), "UNKNOWN") ){
             add_song(file.path);
         }
         
+        //recursively search all dirs
         if(file.is_dir && strcmp(file.name, ".") && strcmp(file.name, ".."))
             generate(file.path);
+
         tinydir_next(&dir);
 
     }
@@ -103,15 +105,17 @@ void playlist::play_song(int pos)
     }
     if(playing_now)
         stop_song();
+
     curr_song = pos;
-    queue_pos = queue.find(pos);
-    list[curr_song]->start();
+    queue_pos = queue.find(curr_song);
     playing_now = true;
+    list[curr_song]->start();
 
     //load next song
-    //list[next_queue_pos]->load_song();
     int next_queue_pos = queue[(queue_pos + 1) % size];
-    song_handler.push(list[next_queue_pos]);
+    list[next_queue_pos]->load_song();
+    //buggged idk why
+    //song_handler.push(list[next_queue_pos]);
 }
 
 void playlist::play_next_song()
@@ -141,8 +145,9 @@ void playlist::stop_song()
         playing_now = false;
     }
 }
-//bugged
-// Why?!
+
+//bugged again
+//wtf man
 void playlist::seek(int secs)
 {
     if(playing_now)
@@ -165,11 +170,12 @@ void playlist::add_song(const char* path)
 {
     song* new_song = new song(path);
     //don't add songs without metadata
-    if(new_song->get_info().length != 0){
+    //if(new_song->get_info().length != 0){
         list.push_back(std::ref(new_song));
         queue.push_back(size++);
-    }else
-        delete new_song;
+    //}else
+      //  delete new_song;
+
 }
 
 void playlist::add_song(song* s)
@@ -206,7 +212,7 @@ void playlist::toggle_shuffle()
 
 bool playlist::comp_song(const song& s1, const song& s2, char ch )
 {
-    //can be done better, but i don't give a fuck
+    //can be done better, but cba
     switch (ch){
         case 't' : return s1.get_info().title < s2.get_info().title; break;
         case 'a' : return s1.get_info().artist < s2.get_info().artist; break;
