@@ -204,6 +204,7 @@ static const struct fmt_capture {
  */
 static void prg_exit(int code) 
 {
+    close(parent_pipe);
     if (handle)
         snd_pcm_close(handle);
     if (pidfile_written)
@@ -246,10 +247,10 @@ void seek(int signum)
     if (read(parent_pipe, &reed, sizeof(reed)) < 0)
         return;
 
-    toggle_pause(0);
+    /*toggle_pause(0);*/
     if (fseek(stdin, reed, SEEK_CUR))
         fprintf(stderr, "Error recieving seek value\n");
-    toggle_pause(0);
+    /*toggle_pause(0);*/
 }
 
 void vol_test(int signum)
@@ -561,7 +562,6 @@ int main(int argc, char *argv[])
             /*capturev(&argv[optind], argc - optind);*/
     }
     snd_pcm_close(handle);
-    close(parent_pipe);
     handle = NULL;
     free(audiobuf);
       __end:
