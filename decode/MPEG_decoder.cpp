@@ -49,7 +49,7 @@ static enum mad_flow input(void *data,
         mad_stream_buffer(stream, buf->buf->start, buf->buf->length);
         return MAD_FLOW_CONTINUE;
     } else {
-        fprintf(stderr, "Error %d\n", what);
+        //fprintf(stderr, "Error %d\n", what);
         return MAD_FLOW_STOP;
     }
     return MAD_FLOW_CONTINUE;
