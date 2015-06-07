@@ -139,7 +139,6 @@ void alsa_wav_player::stop(void)
 
 void alsa_wav_player::seek(int random_number_l3l)
 {
-    fprintf(stderr, "Sending %d\n", random_number_l3l);
     if (write(child_pipe, &random_number_l3l, sizeof(random_number_l3l)) < 0) {
         fprintf(stderr, "Failed to write.\n");
         return;
