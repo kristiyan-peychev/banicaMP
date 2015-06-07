@@ -29,7 +29,7 @@ private:
     vector<song*> list;
     vector<int> queue;
     int size;
-    int curr_song;
+    song* curr_song;
     int queue_pos;
     bool playing_now;
     bool repeat;
@@ -44,6 +44,8 @@ public:
     playlist(const char* =NULL, bool=false);
     ~playlist();
 
+
+    int get_size() const { return size;}
     void play_song(int);
     void play_next_song();
     void pause_song();
@@ -62,7 +64,6 @@ public:
 
     void toggle_repeat();
     void toggle_shuffle();
-
 
 };
 
