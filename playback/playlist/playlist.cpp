@@ -49,6 +49,8 @@ playlist::~playlist()
         delete list[i];
 }
 
+
+
 void playlist::generate(const char* path)
 {
     //NEEDS MORE ERROR HANDLING
@@ -99,17 +101,21 @@ void playlist::save(const char* path)
 
 void playlist::play_song(int pos)
 {
-    if(pos < 0 || pos > size){
+    if(pos < 0 || pos >= size){
         perror("Out of range\n");
+        return;
+    }
+    if(paused && list[pos] == curr_song){
+        pause_song();
         return;
     }
     if(playing_now)
         stop_song();
-
-    curr_song = pos;
-    queue_pos = queue.find(curr_song);
+    
+    curr_song = list[pos];
+    queue_pos = queue.find(pos);
     playing_now = true;
-    list[curr_song]->start();
+    curr_song->start();
 
     //load next song
     int next_queue_pos = queue[(queue_pos + 1) % size];
@@ -127,21 +133,22 @@ void playlist::play_next_song()
         return;
     }
     queue_pos = (queue_pos + 1) % size;
-    curr_song = queue[queue_pos];
     
-    play_song(curr_song);
+    play_song(queue_pos);
 }
 
 void playlist::pause_song()
 {
-    if(playing_now)
-        list[curr_song]->pause();
+    if(playing_now){
+        curr_song->pause();
+        paused = !paused;
+    }
 }
 
 void playlist::stop_song()
 {
     if(playing_now){
-        list[curr_song]->stop();
+        curr_song->stop();
         playing_now = false;
     }
 }
@@ -151,7 +158,7 @@ void playlist::stop_song()
 void playlist::seek(int secs)
 {
     if(playing_now)
-        list[curr_song]->seek(secs);
+        curr_song->seek(secs);
 }
 
 void playlist::remove_song(int pos)
