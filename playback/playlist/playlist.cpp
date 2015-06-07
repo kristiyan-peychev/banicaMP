@@ -105,9 +105,13 @@ void playlist::play_song(int pos)
         perror("Out of range\n");
         return;
     }
+    if(paused && list[pos] == curr_song){
+        pause_song();
+        return;
+    }
     if(playing_now)
         stop_song();
-
+    
     curr_song = list[pos];
     queue_pos = queue.find(pos);
     playing_now = true;
@@ -129,15 +133,16 @@ void playlist::play_next_song()
         return;
     }
     queue_pos = (queue_pos + 1) % size;
-    curr_song = list[queue_pos];
     
     play_song(queue_pos);
 }
 
 void playlist::pause_song()
 {
-    if(playing_now)
+    if(playing_now){
         curr_song->pause();
+        paused = !paused;
+    }
 }
 
 void playlist::stop_song()

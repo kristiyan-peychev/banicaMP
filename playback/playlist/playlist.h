@@ -34,6 +34,7 @@ private:
     bool playing_now;
     bool repeat;
     bool shuffle;
+    bool paused;
 
     void generate(const char*);
     
