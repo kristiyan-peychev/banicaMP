@@ -9,5 +9,7 @@ Create a `build` directory. Execute
 ##Usage
 Consult `play.h.in`
 ##TODO
-Sound volume.
-Equalizer.
+*   Sound volume;
+*   Equalizer;
+*   Actually implement this shit;
+*   Fix FIFOs, they leave a file.

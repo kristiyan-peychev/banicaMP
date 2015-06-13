@@ -1591,10 +1591,6 @@ static u_char **remap_datav(u_char **data, size_t count)
 #define remap_datav(data, count)    (data)
 #endif
 
-/*
- *  write function
- */
-
 static ssize_t pcm_write(u_char *data, size_t count)
 {
     ssize_t r;
@@ -1681,384 +1677,6 @@ static ssize_t pcm_writev(u_char **data, unsigned int channels, size_t count)
     return result;
 }
 
-/*
- *  read function
- */
-
-static ssize_t pcm_read(u_char *data, size_t rcount)
-{
-    ssize_t r;
-    size_t result = 0;
-    size_t count = rcount;
-
-    if (count != chunk_size) {
-        count = chunk_size;
-    }
-
-    while (count > 0 && !in_aborting) {
-        if (test_position)
-            do_test_position();
-        r = readi_func(handle, data, count);
-        if (test_position)
-            do_test_position();
-        if (r == -EAGAIN || (r >= 0 && (size_t)r < count)) {
-            if (!test_nowait)
-                snd_pcm_wait(handle, 100);
-        } else if (r == -EPIPE) {
-            xrun();
-        } else if (r == -ESTRPIPE) {
-            suspend();
-        } else if (r < 0) {
-            error(_("read error: %s"), snd_strerror(r));
-            prg_exit(EXIT_FAILURE);
-        }
-        if (r > 0) {
-            if (vumeter)
-                compute_max_peak(data, r * hwparams.channels);
-            result += r;
-            count -= r;
-            data += r * bits_per_frame / 8;
-        }
-    }
-    return rcount;
-}
-
-static ssize_t pcm_readv(u_char **data, unsigned int channels, size_t rcount)
-{
-    ssize_t r;
-    size_t result = 0;
-    size_t count = rcount;
-
-    if (count != chunk_size) {
-        count = chunk_size;
-    }
-
-    while (count > 0 && !in_aborting) {
-        unsigned int channel;
-        void *bufs[channels];
-        size_t offset = result;
-        for (channel = 0; channel < channels; channel++)
-            bufs[channel] = data[channel] + offset * bits_per_sample / 8;
-        if (test_position)
-            do_test_position();
-        r = readn_func(handle, bufs, count);
-        if (test_position)
-            do_test_position();
-        if (r == -EAGAIN || (r >= 0 && (size_t)r < count)) {
-            if (!test_nowait)
-                snd_pcm_wait(handle, 100);
-        } else if (r == -EPIPE) {
-            xrun();
-        } else if (r == -ESTRPIPE) {
-            suspend();
-        } else if (r < 0) {
-            error(_("readv error: %s"), snd_strerror(r));
-            prg_exit(EXIT_FAILURE);
-        }
-        if (r > 0) {
-            if (vumeter) {
-                for (channel = 0; channel < channels; channel++)
-                    compute_max_peak(data[channel], r);
-            }
-            result += r;
-            count -= r;
-        }
-    }
-    return rcount;
-}
-
-#if 0
-
-/*
- *  ok, let's play a .voc file
- */
-
-static ssize_t voc_pcm_write(u_char *data, size_t count)
-{
-    ssize_t result = count, r;
-    size_t size;
-
-    while (count > 0) {
-        size = count;
-        if (size > chunk_bytes - buffer_pos)
-            size = chunk_bytes - buffer_pos;
-        memcpy(audiobuf + buffer_pos, data, size);
-        data += size;
-        count -= size;
-        buffer_pos += size;
-        if ((size_t)buffer_pos == chunk_bytes) {
-            if ((size_t)(r = pcm_write(audiobuf, chunk_size)) != chunk_size)
-                return r;
-            buffer_pos = 0;
-        }
-    }
-    return result;
-}
-
-static void voc_write_silence(unsigned x)
-{
-    unsigned l;
-    u_char *buf;
-
-    buf = (u_char *) malloc(chunk_bytes);
-    if (buf == NULL) {
-        error(_("can't allocate buffer for silence"));
-        return;     /* not fatal error */
-    }
-    snd_pcm_format_set_silence(hwparams.format, buf, chunk_size * hwparams.channels);
-    while (x > 0 && !in_aborting) {
-        l = x;
-        if (l > chunk_size)
-            l = chunk_size;
-        if (voc_pcm_write(buf, l) != (ssize_t)l) {
-            error(_("write error"));
-            prg_exit(EXIT_FAILURE);
-        }
-        x -= l;
-    }
-    free(buf);
-}
-
-static void voc_pcm_flush(void)
-{
-    if (buffer_pos > 0) {
-        size_t b;
-        if (snd_pcm_format_set_silence(hwparams.format, audiobuf + buffer_pos, chunk_bytes - buffer_pos * 8 / bits_per_sample) < 0)
-            fprintf(stderr, _("voc_pcm_flush - silence error"));
-        b = chunk_size;
-        if (pcm_write(audiobuf, b) != (ssize_t)b)
-            error(_("voc_pcm_flush error"));
-    }
-    snd_pcm_nonblock(handle, 0);
-    snd_pcm_drain(handle);
-    snd_pcm_nonblock(handle, nonblock);
-}
-
-
-static void voc_play(int fd, int ofs, char *name)
-{
-    int l;
-    VocBlockType *bp;
-    VocVoiceData *vd;
-    VocExtBlock *eb;
-    size_t nextblock, in_buffer;
-    u_char *data, *buf;
-    char was_extended = 0, output = 0;
-    u_short *sp, repeat = 0;
-    off64_t filepos = 0;
-
-#define COUNT(x)    nextblock -= x; in_buffer -= x; data += x
-#define COUNT1(x)   in_buffer -= x; data += x
-
-    data = buf = (u_char *)malloc(64 * 1024);
-    buffer_pos = 0;
-    if (data == NULL) {
-        error(_("malloc error"));
-        prg_exit(EXIT_FAILURE);
-    }
-    if (!quiet_mode) {
-        fprintf(stderr, _("Playing Creative Labs Channel file '%s'...\n"), name);
-    }
-    /* first we waste the rest of header, ugly but we don't need seek */
-    while (ofs > (ssize_t)chunk_bytes) {
-        if ((size_t)safe_read(fd, buf, chunk_bytes) != chunk_bytes) {
-            error(_("read error"));
-            prg_exit(EXIT_FAILURE);
-        }
-        ofs -= chunk_bytes;
-    }
-    if (ofs) {
-        if (safe_read(fd, buf, ofs) != ofs) {
-            error(_("read error"));
-            prg_exit(EXIT_FAILURE);
-        }
-    }
-    hwparams.format = DEFAULT_FORMAT;
-    hwparams.channels = 1;
-    hwparams.rate = DEFAULT_SPEED;
-    set_params();
-
-    in_buffer = nextblock = 0;
-    while (!in_aborting) {
-          Fill_the_buffer:  /* need this for repeat */
-        if (in_buffer < 32) {
-            /* move the rest of buffer to pos 0 and fill the buf up */
-            if (in_buffer)
-                memcpy(buf, data, in_buffer);
-            data = buf;
-            if ((l = safe_read(fd, buf + in_buffer, chunk_bytes - in_buffer)) > 0)
-                in_buffer += l;
-            else if (!in_buffer) {
-                /* the file is truncated, so simulate 'Terminator' 
-                   and reduce the datablock for safe landing */
-                nextblock = buf[0] = 0;
-                if (l == -1) {
-                    perror(name);
-                    prg_exit(EXIT_FAILURE);
-                }
-            }
-        }
-        while (!nextblock) {    /* this is a new block */
-            if (in_buffer < sizeof(VocBlockType))
-                goto __end;
-            bp = (VocBlockType *) data;
-            COUNT1(sizeof(VocBlockType));
-            nextblock = VOC_DATALEN(bp);
-            if (output && !quiet_mode)
-                fprintf(stderr, "\n");  /* write /n after ASCII-out */
-            output = 0;
-            switch (bp->type) {
-            case 0:
-#if 0
-                d_printf("Terminator\n");
-#endif
-                return;     /* VOC-file stop */
-            case 1:
-                vd = (VocVoiceData *) data;
-                COUNT1(sizeof(VocVoiceData));
-                /* we need a SYNC, before we can set new SPEED, STEREO ... */
-
-                if (!was_extended) {
-                    hwparams.rate = (int) (vd->tc);
-                    hwparams.rate = 1000000 / (256 - hwparams.rate);
-#if 0
-                    d_printf("Channel data %d Hz\n", dsp_speed);
-#endif
-                    if (vd->pack) {     /* /dev/dsp can't it */
-                        error(_("can't play packed .voc files"));
-                        return;
-                    }
-                    if (hwparams.channels == 2)     /* if we are in Stereo-Mode, switch back */
-                        hwparams.channels = 1;
-                } else {    /* there was extended block */
-                    hwparams.channels = 2;
-                    was_extended = 0;
-                }
-                set_params();
-                break;
-            case 2: /* nothing to do, pure data */
-#if 0
-                d_printf("Channel continuation\n");
-#endif
-                break;
-            case 3: /* a silence block, no data, only a count */
-                sp = (u_short *) data;
-                COUNT1(sizeof(u_short));
-                hwparams.rate = (int) (*data);
-                COUNT1(1);
-                hwparams.rate = 1000000 / (256 - hwparams.rate);
-                set_params();
-#if 0
-                {
-                    size_t silence;
-                    silence = (((size_t) * sp) * 1000) / hwparams.rate;
-                    d_printf("Silence for %d ms\n", (int) silence);
-                }
-#endif
-                voc_write_silence(*sp);
-                break;
-            case 4: /* a marker for syncronisation, no effect */
-                sp = (u_short *) data;
-                COUNT1(sizeof(u_short));
-#if 0
-                d_printf("Marker %d\n", *sp);
-#endif
-                break;
-            case 5: /* ASCII text, we copy to stderr */
-                output = 1;
-#if 0
-                d_printf("ASCII - text :\n");
-#endif
-                break;
-            case 6: /* repeat marker, says repeatcount */
-                /* my specs don't say it: maybe this can be recursive, but
-                   I don't think somebody use it */
-                repeat = *(u_short *) data;
-                COUNT1(sizeof(u_short));
-#if 0
-                d_printf("Repeat loop %d times\n", repeat);
-#endif
-                if (filepos >= 0) { /* if < 0, one seek fails, why test another */
-                    if ((filepos = lseek64(fd, 0, 1)) < 0) {
-                        error(_("can't play loops; %s isn't seekable\n"), name);
-                        repeat = 0;
-                    } else {
-                        filepos -= in_buffer;   /* set filepos after repeat */
-                    }
-                } else {
-                    repeat = 0;
-                }
-                break;
-            case 7: /* ok, lets repeat that be rewinding tape */
-                if (repeat) {
-                    if (repeat != 0xFFFF) {
-#if 0
-                        d_printf("Repeat loop %d\n", repeat);
-#endif
-                        --repeat;
-                    }
-#if 0
-                    else
-                        d_printf("Neverending loop\n");
-#endif
-                    lseek64(fd, filepos, 0);
-                    in_buffer = 0;  /* clear the buffer */
-                    goto Fill_the_buffer;
-                }
-#if 0
-                else
-                    d_printf("End repeat loop\n");
-#endif
-                break;
-            case 8: /* the extension to play Stereo, I have SB 1.0 :-( */
-                was_extended = 1;
-                eb = (VocExtBlock *) data;
-                COUNT1(sizeof(VocExtBlock));
-                hwparams.rate = (int) (eb->tc);
-                hwparams.rate = 256000000L / (65536 - hwparams.rate);
-                hwparams.channels = eb->mode == VOC_MODE_STEREO ? 2 : 1;
-                if (hwparams.channels == 2)
-                    hwparams.rate = hwparams.rate >> 1;
-                if (eb->pack) {     /* /dev/dsp can't it */
-                    error(_("can't play packed .voc files"));
-                    return;
-                }
-#if 0
-                d_printf("Extended block %s %d Hz\n",
-                     (eb->mode ? "Stereo" : "Mono"), dsp_speed);
-#endif
-                break;
-            default:
-                error(_("unknown blocktype %d. terminate."), bp->type);
-                return;
-            }   /* switch (bp->type) */
-        }       /* while (! nextblock)  */
-        /* put nextblock data bytes to dsp */
-        l = in_buffer;
-        if (nextblock < (size_t)l)
-            l = nextblock;
-        if (l) {
-            if (output && !quiet_mode) {
-                if (write(2, data, l) != l) {   /* to stderr */
-                    error(_("write error"));
-                    prg_exit(EXIT_FAILURE);
-                }
-            } else {
-                if (voc_pcm_write(data, l) != l) {
-                    error(_("write error"));
-                    prg_exit(EXIT_FAILURE);
-                }
-            }
-            COUNT(l);
-        }
-    }           /* while(1) */
-      __end:
-        voc_pcm_flush();
-        free(buf);
-}
-/* that was a big one, perhaps somebody split it :-) */
-#endif
-
 /* setting the globals for playing raw data */
 static inline void init_raw_data(void)
 {
@@ -2089,6 +1707,7 @@ static void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *n
     set_params();
 
     while (loaded > chunk_bytes && written < count && !in_aborting) {
+        /* TODO: Apply filters here if any */
         if (pcm_write(audiobuf + written, chunk_size) <= 0)
             return;
         written += chunk_bytes;
@@ -2130,11 +1749,6 @@ static void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *n
     snd_pcm_nonblock(handle, nonblock);
 }
 
-
-/*
- *  let's play or capture it (capture_type says VOC/WAVE/raw)
- */
-
 static void playback(char *name)
 {
     int ofs;
@@ -2145,10 +1759,8 @@ static void playback(char *name)
     fdcount = 0;
     fd = fileno(stdin);
     name = "stdin";
-    /* read the file header */
 
-    /* NOTE: We apparently need this */
-    /*#if 0*/
+    /* read the file header */
     dta = sizeof(AuHeader);
     if ((size_t)safe_read(fd, audiobuf, dta) != dta) {
         error(_("read error"));
@@ -2178,58 +1790,6 @@ static void playback(char *name)
       __end:
     if (fd != 0)
         close(fd);
-}
-
-
-static void playbackv_go(int* fds, unsigned int channels, size_t loaded, off64_t count, int rtype, char **names)
-{
-    int r;
-    size_t vsize;
-
-    unsigned int channel;
-    u_char *bufs[channels];
-
-    set_params();
-
-    vsize = chunk_bytes / channels;
-
-    // Not yet implemented
-    assert(loaded == 0);
-
-    for (channel = 0; channel < channels; ++channel)
-        bufs[channel] = audiobuf + vsize * channel;
-
-    while (count > 0 && !in_aborting) {
-        size_t c = 0;
-        size_t expected = count / channels;
-        if (expected > vsize)
-            expected = vsize;
-        do {
-            r = safe_read(fds[0], bufs[0], expected);
-            if (r < 0) {
-                perror(names[channel]);
-                prg_exit(EXIT_FAILURE);
-            }
-            for (channel = 1; channel < channels; ++channel) {
-                if (safe_read(fds[channel], bufs[channel], r) != r) {
-                    perror(names[channel]);
-                    prg_exit(EXIT_FAILURE);
-                }
-            }
-            if (r == 0)
-                break;
-            c += r;
-        } while (c < expected);
-        c = c * 8 / bits_per_sample;
-        r = pcm_writev(bufs, channels, c);
-        if ((size_t)r != c)
-            break;
-        r = r * bits_per_frame / 8;
-        count -= r;
-    }
-    snd_pcm_nonblock(handle, 0);
-    snd_pcm_drain(handle);
-    snd_pcm_nonblock(handle, nonblock);
 }
 
 static void playbackv(char **names, unsigned int count)
@@ -2266,12 +1826,7 @@ static void playbackv(char **names, unsigned int count)
             goto __end;
         }
     }
-    /* should be raw data */
-    init_raw_data();
-    pbrec_count = calc_count();
-    playbackv_go(fds, channels, 0, pbrec_count, FORMAT_RAW, names);
-
-      __end:
+    __end:
     for (channel = 0; channel < channels; ++channel) {
         if (fds[channel] >= 0)
             close(fds[channel]);
