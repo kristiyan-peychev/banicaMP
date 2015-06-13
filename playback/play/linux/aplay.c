@@ -1767,6 +1767,8 @@ static ssize_t pcm_readv(u_char **data, unsigned int channels, size_t rcount)
     return rcount;
 }
 
+#if 0
+
 /*
  *  ok, let's play a .voc file
  */
@@ -1831,6 +1833,7 @@ static void voc_pcm_flush(void)
     snd_pcm_drain(handle);
     snd_pcm_nonblock(handle, nonblock);
 }
+
 
 static void voc_play(int fd, int ofs, char *name)
 {
@@ -2054,6 +2057,7 @@ static void voc_play(int fd, int ofs, char *name)
         free(buf);
 }
 /* that was a big one, perhaps somebody split it :-) */
+#endif
 
 /* setting the globals for playing raw data */
 static inline void init_raw_data(void)
@@ -2156,18 +2160,11 @@ static void playback(char *name)
         playback_go(fd, 0, pbrec_count, FORMAT_AU, name);
         goto __end;
     }
-    dta = sizeof(VocHeader);
     if ((size_t)safe_read(fd, audiobuf + sizeof(AuHeader),
          dta - sizeof(AuHeader)) != dta - sizeof(AuHeader)) {
         error(_("read error"));
         prg_exit(EXIT_FAILURE);;
     }
-    if ((ofs = test_vocfile(audiobuf)) >= 0) {
-        pbrec_count = calc_count();
-        voc_play(fd, ofs, name);
-        goto __end;
-    }
-    /*#endif*/
     /* read bytes for WAVE-header */
     if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
         pbrec_count = calc_count();
@@ -2258,7 +2255,6 @@ static void playbackv(char **names, unsigned int count)
         }
         alloced = 1;
     } else if (count != channels) {
-        error(_("You need to specify %d files"), channels);
         prg_exit(EXIT_FAILURE);
     }
 
