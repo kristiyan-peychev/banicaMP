@@ -6,20 +6,22 @@
 #include <ostream>
 #include <exception>
 
+#define CURRENT_CONFIG_VERSION 1L
+#define FILTERS_SIZE 10
+
 class fopen_except : public std::exception {
 public:
-    virtual const char *what(void) const noexcept override {
+    const char *what(void) const noexcept override {
         return "Failed to open file";
     }
 };
-
-#define CURRENT_CONFIG_VERSION 0L
 
 class config {
     long version; // Confirming to; flags?
     unsigned long max_decoded_songs; // At any time
     unsigned long min_decoded_songs; // ^
     long last_volume; // Not yet implemented; in dB?
+    float filters[FILTERS_SIZE];
 public:
     config(void);
     config(const char *);

@@ -1,5 +1,6 @@
 #include "config.h"
 #include <cstdlib>
+#include <algorithm>
 
 #if defined(_WIN32)
 #include <io.h>
@@ -18,7 +19,10 @@ auto access_funct(const char *fname) -> bool
 
 config::config(void) : version(CURRENT_CONFIG_VERSION), max_decoded_songs(2),
         min_decoded_songs(1), last_volume(0)
-{ }
+{
+    std::for_each(filters, filters + FILTERS_SIZE, 
+            [](float &f) { f = 0; });
+}
 
 config::config(const char *file) : version(CURRENT_CONFIG_VERSION), max_decoded_songs(2),
         min_decoded_songs(1), last_volume(0)
