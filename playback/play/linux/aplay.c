@@ -83,9 +83,17 @@
 
 /* v custom */
 
+#include <fftw3.h>
+
 #define PARENT_PIPE_NAME "banica_player_chld_ctl_fifo"
+#define SIZE 0x400
 
 static int parent_pipe;
+static _Bool filters_avail = 0;
+static fftw_complex *dft_in;
+static fftw_complex *dft_out;
+static fftw_plan dft_plan;
+
 /* ^ custom */
 
 static snd_pcm_sframes_t (*readi_func)(snd_pcm_t *handle, void *buffer, snd_pcm_uframes_t size);
@@ -220,14 +228,31 @@ static void signal_handler(int sig)
     prg_exit(EXIT_FAILURE);
 }
 
-/* call on SIGUSR1 signal. */
-static void signal_handler_recycle (int sig)
+/* custom */
+
+static inline void plan(void)
 {
-    /* flag the capture loop to start a new output file */
-    recycle_capture_file = 1;
+    dft_in = fftw_malloc(sizeof(*dft_in) * SIZE);
+    dft_out = fftw_malloc(sizeof(*dft_out) * SIZE);
+    dft_plan = fftw_plan_dft_1d(SIZE, dft_in, dft_out, FFTW_FORWARD, FFTW_ESTIMATE);
 }
 
-void toggle_pause(int signum)
+static inline void apply_filters(void)
+{
+    /* TODO */
+    fftw_execute(dft_plan);
+}
+
+static inline void do_apply_filters(u_char *data, size_t count)
+{
+    int i, j = 0;
+    for (i = 0; j < count; i++)
+        dft_in[i][0] = (double) ((data[j++] << 8) | data[j++]);
+
+    apply_filters();
+}
+
+static void toggle_pause(int signum)
 {
     if (!paused) {
         if (snd_pcm_pause(handle, 1) < 0) {
@@ -241,7 +266,7 @@ void toggle_pause(int signum)
     }
 }
 
-void seek(int signum)
+static void seek(int signum)
 {
     int reed;
     if (read(parent_pipe, &reed, sizeof(reed)) < 0)
@@ -253,10 +278,12 @@ void seek(int signum)
     /*toggle_pause(0);*/
 }
 
-void vol_test(int signum)
+static void vol_test(int signum)
 {
     /*TODO*/
 }
+
+/* /custom */
 
 int main(int argc, char *argv[])
 {
@@ -292,6 +319,7 @@ int main(int argc, char *argv[])
     }
     mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
     parent_pipe = open(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
+    plan();
     static const struct option long_options[] = {
         {"help", 0, 0, 'h'},
         {"list-devnames", 0, 0, 'n'},
@@ -527,8 +555,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /*signal(SIGINT, signal_handler);*/
-    /*signal(SIGUSR1, signal_handler_recycle);*/
     signal(SIGTERM, signal_handler);
     signal(SIGABRT, signal_handler);
 
@@ -1707,7 +1733,9 @@ static void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *n
     set_params();
 
     while (loaded > chunk_bytes && written < count && !in_aborting) {
-        /* TODO: Apply filters here if any */
+        if (filters_avail)
+            do_apply_filters(audiobuf + written, chunk_size);
+
         if (pcm_write(audiobuf + written, chunk_size) <= 0)
             return;
         written += chunk_bytes;
