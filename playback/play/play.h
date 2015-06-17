@@ -28,15 +28,15 @@ public:
 	virtual void toggle_pause(void) = 0;
 	virtual void stop(void) = 0;
     virtual void seek(int) = 0;
-private:
-	play_wav &operator=(const play_wav &) { return *this; }
-	play_wav(const play_wav &) { }
+public:
+	play_wav &operator=(const play_wav &) = delete;
+	play_wav(const play_wav &) = delete;
 };
 
 #if defined(linux)
 #include "linux/play.h"
 #elif defined(WIN32)
-#error KUR ZA WINDOWS
+#include "windows/play.h"
 #endif
 
 extern "C" play_wav *get_player(FILE *);
