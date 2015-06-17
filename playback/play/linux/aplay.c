@@ -1789,22 +1789,22 @@ static void playback(char *name)
     name = "stdin";
 
     /* read the file header */
-    dta = sizeof(AuHeader);
-    if ((size_t)safe_read(fd, audiobuf, dta) != dta) {
-        error(_("read error"));
-        prg_exit(EXIT_FAILURE);
-    }
-    if (test_au(fd, audiobuf) >= 0) {
-        rhwparams.format = hwparams.format;
-        pbrec_count = calc_count();
-        playback_go(fd, 0, pbrec_count, FORMAT_AU, name);
-        goto __end;
-    }
-    if ((size_t)safe_read(fd, audiobuf + sizeof(AuHeader),
-         dta - sizeof(AuHeader)) != dta - sizeof(AuHeader)) {
-        error(_("read error"));
-        prg_exit(EXIT_FAILURE);;
-    }
+    /*dta = sizeof(AuHeader);*/
+    /*if ((size_t)safe_read(fd, audiobuf, dta) != dta) {*/
+        /*error(_("read error"));*/
+        /*prg_exit(EXIT_FAILURE);*/
+    /*}*/
+    /*if (test_au(fd, audiobuf) >= 0) {*/
+        /*rhwparams.format = hwparams.format;*/
+        /*pbrec_count = calc_count();*/
+        /*playback_go(fd, 0, pbrec_count, FORMAT_AU, name);*/
+        /*goto __end;*/
+    /*}*/
+    /*if ((size_t)safe_read(fd, audiobuf + sizeof(AuHeader),*/
+         /*dta - sizeof(AuHeader)) != dta - sizeof(AuHeader)) {*/
+        /*error(_("read error"));*/
+        /*prg_exit(EXIT_FAILURE);;*/
+    /*}*/
     /* read bytes for WAVE-header */
     if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
         pbrec_count = calc_count();
