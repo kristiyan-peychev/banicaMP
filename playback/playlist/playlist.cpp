@@ -90,35 +90,47 @@ void playlist::print_songs()
     printf("\n");
 }
 
+//load from playlist
 void playlist::load(const char* path)
 {
 
 }
 
+//save to playlist
 void playlist::save(const char* path)
 {
 }
 
 void playlist::play_song(int pos)
 {
+    //out of range
     if(pos < 0 || pos >= size){
         perror("Out of range\n");
         return;
     }
+
+    //unpause when clicked on paused song
     if(paused && list[pos] == curr_song){
         pause_song();
         return;
     }
+
+    //stop previous song
     if(playing_now)
         stop_song();
+
     
+    //set current song
     curr_song = list[pos];
+    //set current queue pos
     queue_pos = queue.find(pos);
+    //start song
     playing_now = true;
     curr_song->start();
 
-    //load next song
+    //get next song number form queue
     int next_queue_pos = queue[(queue_pos + 1) % size];
+    //load next song
     list[next_queue_pos]->load_song();
     //buggged idk why
     //song_handler.push(list[next_queue_pos]);
@@ -163,10 +175,12 @@ void playlist::seek(int secs)
 
 void playlist::remove_song(int pos)
 {
+    //find song number in queue
     int idx = queue.find(pos);
     if(idx == -1)
         perror("Item not in playlist!\n");
     else{
+        //remove song from playlist and queue
         list.remove(pos);
         queue.remove(idx);
         size--;
@@ -177,6 +191,7 @@ void playlist::add_song(const char* path)
 {
     song* new_song = new song(path);
     //don't add songs without metadata
+    //temporary enabled for debugging reasons
     //if(new_song->get_info().length != 0){
         list.push_back(std::ref(new_song));
         queue.push_back(size++);
@@ -219,7 +234,7 @@ void playlist::toggle_shuffle()
 
 bool playlist::comp_song(const song& s1, const song& s2, char ch )
 {
-    //can be done better, but cba
+    //can be done better, but good enough for now
     switch (ch){
         case 't' : return s1.get_info().title < s2.get_info().title; break;
         case 'a' : return s1.get_info().artist < s2.get_info().artist; break;

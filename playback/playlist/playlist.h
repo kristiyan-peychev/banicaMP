@@ -26,15 +26,15 @@ private:
         void push(song*) noexcept;
     } song_handler;
 private:
-    vector<song*> list;
-    vector<int> queue;
-    int size;
-    song* curr_song;
-    int queue_pos;
-    bool playing_now;
-    bool repeat;
-    bool shuffle;
-    bool paused;
+    vector<song*> list; //array of all the song
+    vector<int> queue;  // array with order of playing
+    int size;           // number of songs in playlist
+    song* curr_song;    // current song
+    int queue_pos;      // current position in queue
+    bool playing_now;   //is a song playing
+    bool repeat;        //is repeat enabled
+    bool shuffle;       // is shuffle enabled
+    bool paused;        // is song paused
 
     void generate(const char*);
     

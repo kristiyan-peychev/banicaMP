@@ -24,19 +24,23 @@ void song::load_song()
 {
     //load decoder
     if(dec == NULL){
-        song_file = fopen(path, "rb");
+        song_file = fopen(path, "r");
         dec = get_decoder(song_file, encoding);
+    }
+
+    //decode the music file
+    if(decoded_file == NULL){
+        //create temp file to hold the decoded song
+        decoded_file = tmpfile();
+        dec->decode(decoded_file); 
+
+        //switch to read and return pos indicator to beginning
+        rewind(decoded_file);
     }
 
     //load wav player
     if(player == NULL){
-        if(decoded_file == NULL){
-            decoded_file = tmpfile();
-            dec->decode(decoded_file);
-
-        }
-        rewind(decoded_file);
-        player = get_player(decoded_file);
+       player = get_player(decoded_file);
     }
 }
 
@@ -49,9 +53,8 @@ void song::clear_song()
         delete dec;
 
     //CAUSES DOUBLE FREE OR CORRUPTION
-    //WTF
-    //if(song_file != NULL)
-      //  fclose(song_file);
+    if(song_file != NULL)
+        fclose(song_file);
 
     if(player != NULL)
         delete player;
@@ -62,6 +65,7 @@ void song::clear_song()
     dec = NULL;
     
 }
+
 
 const char* song::get_path() const
 {
@@ -80,23 +84,33 @@ const char* song::get_encoding() const
 	return this->encoding;
 }
 
-void start_thread(song& s)
+
+void play_song(song& s)
 {
+    printf("%s\n", s.info.title.toCString(true));
+    
+    s.load_song();
+
+    s.manual_stop = false;
+   
+    //start the song
     s.player->begin();
+    //clear song after it finishes
     s.clear_song();
+
+    //tell playlist to play next song
     if(!s.manual_stop)
         observer.play_next_song();
+
     printf("end of thread\n");
 }
 
 void song::start()
 {
-    printf("%s\n", info.title.toCString(true));
-    load_song();
+    //start the song in a new thread
+    t = std::thread(play_song, std::ref(*this));
 
-    manual_stop = false;
-    t = new std::thread(start_thread, std::ref(*this));
-    t->detach();
+    t.detach();
 }
 
 void song::pause()
