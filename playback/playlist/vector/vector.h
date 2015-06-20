@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <cstdio>
 #include <algorithm>
+#include <iterator>
 
 template<typename T>
 class vector {
@@ -30,11 +31,31 @@ public:
     void insert(const T&, int);
     int find(T&);
 
+
     void sort(bool (*comp)(const T&, const T& )=NULL);
 
     T& operator[](int);
+    
 
+    //don't know how correct this is
+    class iterator: std::iterator<std::bidirectional_iterator_tag, T>{
+        T* p;
+        
+    public:
+        iterator(int* x=NULL) :p(x) {}
+        iterator(const iterator& it) : p(it.p) {}
+        iterator& operator++() { ++p; return *this;}
+        iterator& operator--() { --p; return *this;}
+        bool operator==(const iterator& rhs) {return p==rhs.p;}
+        bool operator!=(const iterator& rhs) {return p!=rhs.p;}
+        T& operator*() {return *p;}
+    };
 
+    iterator begin(){ return iterator(&m_arr[0]);}
+    iterator end() { return iterator(m_arr + m_size);}
+    iterator rbegin(){ return iterator(m_arr -1);}
+    iterator rend(){ return iterator(&m_arr[m_size-1]);}
+    
 
 
 
