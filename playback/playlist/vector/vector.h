@@ -38,7 +38,7 @@ public:
     
 
     //don't know how correct this is
-    class iterator: std::iterator<std::bidirectional_iterator_tag, T>{
+    class iterator: public std::iterator<std::bidirectional_iterator_tag, T>{
         T* p;
         
     public:
@@ -53,8 +53,8 @@ public:
 
     iterator begin(){ return iterator(&m_arr[0]);}
     iterator end() { return iterator(m_arr + m_size);}
-    iterator rbegin(){ return iterator(m_arr -1);}
-    iterator rend(){ return iterator(&m_arr[m_size-1]);}
+    iterator rbegin(){ return iterator(&m_arr[m_size-1]);}
+    iterator rend(){ return iterator(m_arr -1);}
     
 
 

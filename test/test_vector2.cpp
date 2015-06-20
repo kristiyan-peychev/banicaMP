@@ -12,8 +12,8 @@ int main(int argc, char *argv[])
         ++it;
     }
     printf("\n");
-    it = a.rend();
-    while(it != a.rbegin()){
+    it = a.rbegin();
+    while(it != a.rend()){
         printf("%d ", *it);
         --it;
     }
