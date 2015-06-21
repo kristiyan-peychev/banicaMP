@@ -16,27 +16,16 @@ static inline bool write_little_endian_uint16(FILE *f, FLAC__int16 x)
 
 static inline bool write_little_endian_int16(FILE *f, FLAC__int16 x)
 {
-	//return write_little_endian_uint16(f, (FLAC__uint16)x);
     return fwrite(&x, 1, sizeof(FLAC__uint16), f);
-	//return
-			//fputc(x, f) != EOF &&
-			//fputc(x >> 8, f) != EOF
-	//;
 }
 
 static inline bool write_little_endian_uint32(FILE *f, FLAC__uint32 x)
 {
     return fwrite(&x, 1, sizeof(FLAC__uint32), f);
-	//return
-			//fputc(x, f) != EOF &&
-			//fputc(x >> 8, f) != EOF &&
-			//fputc(x >> 16, f) != EOF &&
-			//fputc(x >> 24, f) != EOF
-	//;
 }
  
 flac_decoder::flac_decoder(FILE *lol) : FLAC::Decoder::File(), file(lol),
-		total_samples(0), bps(0), channels(0), sample_rate(0)
+		total_samples(0), bps(0), channels(0), sample_rate(0), memflg(false)
 {
 	FLAC__StreamDecoderInitStatus init_status = init(file);
 	if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK) {
@@ -45,23 +34,53 @@ flac_decoder::flac_decoder(FILE *lol) : FLAC::Decoder::File(), file(lol),
 	}
 }
 
-flac_decoder::~flac_decoder(void)
-{
-	//fclose(file);
-	//fclose(f);
-}
+flac_decoder::~flac_decoder(void) { }
 
 ::FLAC__StreamDecoderWriteStatus flac_decoder::write_callback(
+		const ::FLAC__Frame *frame, const FLAC__int32 * const buffer[])
+{
+	if(total_samples == 0)
+		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+	if(channels != 2 || bps != 16)
+		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+
+    if (memflg)
+        mem_write_callback(frame, buffer);
+    else
+        file_write_callback(frame, buffer);
+}
+
+::FLAC__StreamDecoderWriteStatus flac_decoder::mem_write_callback(
 		const ::FLAC__Frame *frame, const FLAC__int32 * const buffer[])
 {
 	const FLAC__uint32 total_size = 
 			(FLAC__uint32)(total_samples * channels * (bps/8));
 	size_t i = 0, k = 0;
 
-	if(total_samples == 0)
-		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
-	if(channels != 2 || bps != 16)
-		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+    if (out->cap() < (((size_t) p - (size_t) out->begin()) + 
+            (frame->header.blocksize << 1)))
+        out->expand(out->cap());
+
+	/* write decoded PCM samples */
+    FLAC__int16 *buf = static_cast<FLAC__int16 *>(p);
+	for (; i < frame->header.blocksize; i++) {
+        buf[k++] = (FLAC__int16) buffer[0][i];
+        buf[k++] = (FLAC__int16) buffer[1][i];
+	}
+
+    char *bufff = (char *) ((size_t) p + (size_t) buf);
+    delete[] buf;
+    p = (void *) bufff;
+
+	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
+}
+
+::FLAC__StreamDecoderWriteStatus flac_decoder::file_write_callback(
+		const ::FLAC__Frame *frame, const FLAC__int32 * const buffer[])
+{
+	const FLAC__uint32 total_size = 
+			(FLAC__uint32)(total_samples * channels * (bps/8));
+	size_t i = 0, k = 0;
 
 	/* write WAVE header before we write the first frame */
     /* Correction: SCREW the header, we don't need it. */
@@ -101,6 +120,7 @@ flac_decoder::~flac_decoder(void)
 
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
+
 void flac_decoder::metadata_callback(const ::FLAC__StreamMetadata *metadata)
 {
 	if(metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
@@ -111,15 +131,25 @@ void flac_decoder::metadata_callback(const ::FLAC__StreamMetadata *metadata)
 	}
 }
 
+
 void flac_decoder::error_callback(
 		::FLAC__StreamDecoderErrorStatus status)
 {
-	fprintf(stderr, "Got error callback: %s\n", FLAC__StreamDecoderErrorStatusString[status]);
+	fprintf(stderr, "Got error callback: %s\n", 
+            FLAC__StreamDecoderErrorStatusString[status]);
 }
 
 bool flac_decoder::decode(FILE *outf)
 {
-	f = outf;
-	return process_until_end_of_stream();
+    f = outf;
+    memflg = false;
+    return process_until_end_of_stream();
+}
+
+bool flac_decoder::decode(memory *mem)
+{
+    out = mem;
+    memflg = true;
+    return process_until_end_of_stream();
 }
 

@@ -59,13 +59,51 @@ static enum mad_flow error(void *data,
         struct mad_stream *stream,
         struct mad_frame *frame)
 {
-    //uberbuff *buf = static_cast<uberbuff *>(data);
-
-    //fprintf(stderr, "decoding error 0x%04x (%s) at byte offset %u\n", stream->error, mad_stream_errorstr(stream), stream->this_frame - buf->buf->start);
     return MAD_FLOW_CONTINUE;
 }
 
-static enum mad_flow output(void *data, 
+static enum mad_flow mem_output(void *data, 
+        const struct mad_header *header,
+        struct mad_pcm *pcm)
+{
+    signed int sample;
+    unsigned nchannels, nsamples, ss;
+    const mad_fixed_t *left_ch, *right_ch;
+    signed char ostr[4];
+    uberbuff *buf = static_cast<uberbuff *>(data);
+
+    nchannels = pcm->channels;
+    nsamples = pcm->length;
+    ss = nsamples * (nchannels << 1);
+    left_ch = pcm->samples[0];
+    right_ch = pcm->samples[1];
+
+    if (buf->mem->cap() < (((size_t) buf->p - (size_t) buf->mem->begin()) + ss))
+        buf->mem->expand(buf->mem->cap());
+
+    signed char *to_write = (signed char *) malloc(nsamples * (nchannels << 1));
+    signed char *tmp = to_write;
+    while (nsamples--) {
+        /* output sample(s) in 16-bit signed little-endian PCM */
+        sample = scale(*left_ch++);
+        ostr[0] = (sample >> 0) & 0xff;
+        ostr[1] = (sample >> 8) & 0xff;
+        sample = scale(*right_ch++);
+        ostr[2] = (sample >> 0) & 0xff;
+        ostr[3] = (sample >> 8) & 0xff;
+
+        memcpy(tmp, ostr, sizeof(ostr));
+        tmp += sizeof(ostr);
+    }
+
+    memcpy(buf->p, to_write, ss);
+    buf->p = (void *) ((size_t) buf->p + ss);
+    free(to_write);
+
+    return MAD_FLOW_CONTINUE;
+}
+
+static enum mad_flow file_output(void *data, 
         const struct mad_header *header,
         struct mad_pcm *pcm)
 {
@@ -121,7 +159,7 @@ bool MPEG_decoder::decode(FILE *lol)
 {
     buffer buf;
     struct mad_decoder dec;
-    uberbuff pro_buff(&buf, lol, file);
+    uberbuff pro_buff(&buf, lol, file, NULL);
     int result;
 
     //buf.start = new unsigned char [BUFF_SIZE];
@@ -129,7 +167,7 @@ bool MPEG_decoder::decode(FILE *lol)
     buf.length = BUFF_SIZE;
 
     mad_decoder_init(&dec, &pro_buff, input, 0, 0, 
-            output, error, 0);
+            file_output, error, 0);
 
     result = mad_decoder_run(&dec, MAD_DECODER_MODE_SYNC);
 
@@ -137,6 +175,28 @@ bool MPEG_decoder::decode(FILE *lol)
     free(buf.start);
 
     // FIXME
+    return static_cast<bool>(!!result);
+}
+
+bool MPEG_decoder::decode(memory *m)
+{
+    buffer buf;
+    struct mad_decoder dec;
+    uberbuff pro_buff(&buf, NULL, file, m);
+    int result;
+
+    //buf.start = new unsigned char [BUFF_SIZE];
+    buf.start = (unsigned char *) malloc(BUFF_SIZE * sizeof(*buf.start)); 
+    buf.length = BUFF_SIZE;
+
+    mad_decoder_init(&dec, &pro_buff, input, 0, 0, 
+            mem_output, error, 0);
+
+    result = mad_decoder_run(&dec, MAD_DECODER_MODE_SYNC);
+
+    mad_decoder_finish(&dec);
+    free(buf.start);
+
     return static_cast<bool>(!!result);
 }
 

@@ -13,22 +13,22 @@ struct buffer {
 struct uberbuff {
 	buffer *buf;
 	FILE *f, *rd;
-	uberbuff(buffer *b, FILE *ff, FILE *sf) :
-				buf(b), f(ff), rd(sf) { }
+    memory *mem;
+    void *p;
+	uberbuff(buffer *b, FILE *ff, FILE *sf, memory *m) :
+				buf(b), f(ff), rd(sf), mem(m), p(m->begin()) { }
 };
 
-class MPEG_decoder : public decoder {
+class MPEG_decoder final : public decoder {
 	FILE *file; // input
 public:
 	MPEG_decoder(FILE *);
 	~MPEG_decoder(void);
 	bool decode(FILE *);
-/*
-private:
-	enum mad_flow input(void *data, struct mad_stream *);
-	enum mad_flow output(void *data, const struct mad_header *, struct mad_pcm *);
-	enum mad_flow error(void *data, struct mad_stream *, struct mad_frame *);
-*/
+    bool decode(memory *);
+public:
+    MPEG_decoder(void) = delete;
+    MPEG_decoder &operator=(const MPEG_decoder &) = delete;
 };
 
 #endif /* end of include guard: MPEG_DECODER_XF7CBWKS */
