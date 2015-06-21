@@ -38,6 +38,7 @@ template<typename T>
 void vector<T>::copy(const vector &o)
 {
     m_arr=new T[o.m_capacity];
+
     m_size=o.m_size;
     m_capacity=o.m_capacity;
 
@@ -53,7 +54,7 @@ void vector<T>::destroy()
 }
 
 template<typename T>
-void vector<T>::resize(bool grow )
+void vector<T>::resize(bool grow)
 {
     int new_cap;
     if(grow)
@@ -62,13 +63,14 @@ void vector<T>::resize(bool grow )
         new_cap = m_capacity/2;
 
     T* tmp=m_arr;
-    m_arr=new T[new_cap];
+    m_capacity=new_cap;
+
+    m_arr=new T[m_capacity];
 
     for(size_t i=0; i<m_size; i++)
         m_arr[i]=tmp[i];
         
     delete[] tmp;
-    m_capacity=new_cap;
 
 }
 
@@ -136,15 +138,6 @@ int vector<T>::find(T& elem)
             return i;
     }
     return -1;
-}
-
-template<typename T>
-void vector<T>::sort(bool (*comp)(const T&, const T&))
-{
-    if(comp != NULL)
-        std::stable_sort(m_arr, m_arr + m_size, comp);
-    else
-        std::stable_sort(m_arr, m_arr + m_size);
 }
 
 #endif
