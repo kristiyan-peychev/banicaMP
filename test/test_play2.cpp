@@ -23,8 +23,14 @@ int main(int argc, const char *argv[]) {
 	sleep(10);
     fprintf(stderr, "wtf?\n");
     player->seek(9900000);
+    fprintf(stderr, "Seek ret\n");
 	sleep(10);
     player->stop();
+    fprintf(stderr, "Stop ret\n");
     t1.join();
+    std::thread t2(f, player);
+    sleep(10);
+    player->stop();
+    t2.join();
 return 0;
 }

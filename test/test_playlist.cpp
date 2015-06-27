@@ -16,7 +16,7 @@ void print_help(){
 }
 
 int main(){
-    playlist p("/media/win/Music/Avengers OST");
+    playlist p("/falos/random/Music/");
     observer.set_playlist(&p);
     p.print_songs();
     char command[20];
