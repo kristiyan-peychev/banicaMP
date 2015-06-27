@@ -16,7 +16,7 @@ struct uberbuff {
     memory *mem;
     void *p;
 	uberbuff(buffer *b, FILE *ff, FILE *sf, memory *m) :
-				buf(b), f(ff), rd(sf), mem(m), p(m->begin()) { }
+				buf(b), f(ff), rd(sf), mem(m), p((m ? m->begin() : NULL)) { }
 };
 
 class MPEG_decoder final : public decoder {

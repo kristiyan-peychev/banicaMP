@@ -2,7 +2,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-#include <string>
 
 #define BUFF_SIZE 8388608 // 8MB
 
@@ -37,8 +36,6 @@ MPEG_decoder::~MPEG_decoder(void)
     //fclose(file);
 }
 
-static std::string LOLDIS;
-
 static enum mad_flow input(void *data,
         struct mad_stream *stream)
 {
@@ -69,7 +66,6 @@ static enum mad_flow mem_output(void *data,
     signed int sample;
     unsigned nchannels, nsamples, ss;
     const mad_fixed_t *left_ch, *right_ch;
-    signed char ostr[4];
     uberbuff *buf = static_cast<uberbuff *>(data);
 
     nchannels = pcm->channels;
@@ -78,27 +74,29 @@ static enum mad_flow mem_output(void *data,
     left_ch = pcm->samples[0];
     right_ch = pcm->samples[1];
 
-    if (buf->mem->cap() < (((size_t) buf->p - (size_t) buf->mem->begin()) + ss))
-        buf->mem->expand(buf->mem->cap());
+    //if (buf->mem->cap() < (((size_t) buf->p - (size_t) buf->mem->begin()) + ss))
+        //buf->mem->expand(buf->mem->cap());
 
-    signed char *to_write = (signed char *) malloc(nsamples * (nchannels << 1));
-    signed char *tmp = to_write;
+    //signed char *to_write = (signed char *) malloc(nsamples * (nchannels << 1));
+    //signed char *tmp = to_write;
+    signed char *tmp = (signed char *) buf->p;
     while (nsamples--) {
         /* output sample(s) in 16-bit signed little-endian PCM */
         sample = scale(*left_ch++);
-        ostr[0] = (sample >> 0) & 0xff;
-        ostr[1] = (sample >> 8) & 0xff;
+        tmp[0] = (sample >> 0) & 0xff;
+        tmp[1] = (sample >> 8) & 0xff;
         sample = scale(*right_ch++);
-        ostr[2] = (sample >> 0) & 0xff;
-        ostr[3] = (sample >> 8) & 0xff;
+        // two-channel?
+        tmp[2] = (sample >> 0) & 0xff;
+        tmp[3] = (sample >> 8) & 0xff;
 
-        memcpy(tmp, ostr, sizeof(ostr));
-        tmp += sizeof(ostr);
+        //memcpy(tmp, ostr, sizeof(ostr));
+        //tmp += sizeof(ostr);
+        tmp += 4;
     }
 
-    memcpy(buf->p, to_write, ss);
+    //memcpy(buf->p, to_write, ss);
     buf->p = (void *) ((size_t) buf->p + ss);
-    free(to_write);
 
     return MAD_FLOW_CONTINUE;
 }
@@ -110,7 +108,6 @@ static enum mad_flow file_output(void *data,
     signed int sample;
     unsigned nchannels, nsamples, ss;
     const mad_fixed_t *left_ch, *right_ch;
-    signed char ostr[4];
     uberbuff *buf = static_cast<uberbuff *>(data);
 
     nchannels = pcm->channels;
@@ -126,16 +123,12 @@ static enum mad_flow file_output(void *data,
         /* output sample(s) in 16-bit signed little-endian PCM */
 
         sample = scale(*left_ch++);
-        //putc((sample >> 0) & 0xff, buf->f);
-        //putc((sample >> 8) & 0xff, buf->f);
-        ostr[0] = (sample >> 0) & 0xff;
-        ostr[1] = (sample >> 8) & 0xff;
+        tmp[0] = (sample >> 0) & 0xff;
+        tmp[1] = (sample >> 8) & 0xff;
         sample = scale(*right_ch++);
         // We will likely use a two-channel audio >_>
-        ostr[2] = (sample >> 0) & 0xff;
-        ostr[3] = (sample >> 8) & 0xff;
-        //putc((sample >> 0) & 0xff, buf->f);
-        //putc((sample >> 8) & 0xff, buf->f);
+        tmp[2] = (sample >> 0) & 0xff;
+        tmp[3] = (sample >> 8) & 0xff;
 
         //if (nchannels == 2) {
             //sample = scale(*right_ch++);
@@ -145,8 +138,8 @@ static enum mad_flow file_output(void *data,
             //putc((sample >> 8) & 0xff, buf->f);
         //}
         //fwrite((const void *) ostr, 1, 4, buf->f);
-        memcpy(tmp, ostr, sizeof(ostr));
-        tmp += sizeof(ostr);
+        //memcpy(tmp, ostr, sizeof(ostr));
+        tmp += 4;
     }
 
     fwrite(to_write, sizeof(*to_write), ss * (nchannels << 1), buf->f);

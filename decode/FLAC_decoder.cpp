@@ -32,6 +32,7 @@ flac_decoder::flac_decoder(FILE *lol) : FLAC::Decoder::File(), file(lol),
 		exit(EXIT_FAILURE);
 		// throw exception;
 	}
+    printf("FLAC decoder init finished.\n");
 }
 
 flac_decoder::~flac_decoder(void) { }
@@ -57,9 +58,10 @@ flac_decoder::~flac_decoder(void) { }
 			(FLAC__uint32)(total_samples * channels * (bps/8));
 	size_t i = 0, k = 0;
 
-    if (out->cap() < (((size_t) p - (size_t) out->begin()) + 
-            (frame->header.blocksize << 1)))
-        out->expand(out->cap());
+    // FIXME
+    //if (out->cap() < (((size_t) p - (size_t) out->begin()) + 
+            //(frame->header.blocksize << 1)))
+        //out->expand(out->cap());
 
 	/* write decoded PCM samples */
     FLAC__int16 *buf = static_cast<FLAC__int16 *>(p);
@@ -68,9 +70,8 @@ flac_decoder::~flac_decoder(void) { }
         buf[k++] = (FLAC__int16) buffer[1][i];
 	}
 
-    char *bufff = (char *) ((size_t) p + (size_t) buf);
-    delete[] buf;
-    p = (void *) bufff;
+    p = (void *) ((size_t) p + 
+            (size_t) (frame->header.blocksize * sizeof(FLAC__int16)) * 2);
 
 	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
@@ -150,6 +151,7 @@ bool flac_decoder::decode(memory *mem)
 {
     out = mem;
     memflg = true;
+    p = out->begin();
     return process_until_end_of_stream();
 }
 
