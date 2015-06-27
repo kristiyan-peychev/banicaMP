@@ -1,11 +1,16 @@
 #define _LINUX
 #include "memory.h"
-#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdlib>
+#include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <new>
 #include <algorithm>
 
 #define PATH_TO_IDENTIFIER "/home/kawaguchi/test_segment"
+#define NUMBER 128
 
 class not_implemented {
     const char *what(void) const noexcept {
@@ -22,7 +27,8 @@ memory::memory(size_t size) throw() : size(size)
 
     key = ftok(PATH_TO_IDENTIFIER, next); // FIXME
     if (key == -1) {
-        fprintf(stderr, "Error getting the key. Trying to create a file.\n");
+        //fprintf(stderr, "Error getting the key. Trying to create a file.\n");
+        perror("ftok");
         char *path = (char *) malloc(NUMBER * sizeof(char));
         strcpy(path, "/home/"); // won't work for root, FIXME
         strcat(path, getlogin());
@@ -33,14 +39,16 @@ memory::memory(size_t size) throw() : size(size)
 
     shmid = shmget(key, this->size, 0644 | IPC_CREAT);
     if (shmid == -1) {
-        fprintf(stderr, "Error gettng the segment\n");
+        //fprintf(stderr, "Error gettng the segment\n");
+        perror("shmget");
         throw std::bad_alloc();
     }
 
     start = (char *) shmat(shmid, (void *) 0, 0);
     ending = (void *) ((size_t) start + size);
     if (start == (void *) (-1)) {
-        fprintf(stderr, "Error getting a pointer\n");
+        //fprintf(stderr, "Error getting a pointer\n");
+        perror("shmat");
         throw std::bad_alloc(); // same?
     }
 }
@@ -60,7 +68,7 @@ inline void * const memory::end(void) const noexcept
     return ending;
 }
 
-inline size_t memory::cap(void) const noexcept
+size_t memory::cap(void) const noexcept
 {
     return size;
 }

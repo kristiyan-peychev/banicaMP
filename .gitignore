@@ -35,3 +35,5 @@ playback/play/linux/play.h
 playback/play/linux/build/*
 playback/playlist/build/*
 decode/build/*
+memory/build/*
+config/build/*
