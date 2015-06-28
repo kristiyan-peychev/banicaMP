@@ -8,34 +8,27 @@
 
 template<typename T>
 class vector {
-    T* m_arr;
-    int m_size;
-    int m_capacity;
-
-    void copy(const vector &o);
-    void destroy();
-    void resize(bool=true);
-    
+    T *start, *current, *ending;
+private:
+    void resize(bool = true);
 public:
-    vector(int=4);
+    explicit vector(int = 4);
     vector(const vector &o);
-    vector& operator= (const vector &o);
+    vector& operator=(const vector &);
     ~vector();
 
-    int size() const { return m_size;}
-    int capacity() const {return m_capacity;}
+    size_t size() const { return (current - start + 1); }
+    size_t capacity() const { return (ending - start - 1); }
 
     void push_back(const T&);
     void pop_back();
-    void remove(int);
-    void insert(const T&, int);
-    int find(T&);
+    void remove(size_t);
+    void insert(const T&, size_t);
+    ssize_t find(T&) noexcept;
 
+    void sort(bool (*comp)(const T&, const T& ) = NULL);
 
-    void sort(bool (*comp)(const T&, const T& )=NULL);
-
-    T& operator[](int);
-    
+    T& operator[](size_t);
 
     //don't know how correct this is
     class iterator: public std::iterator<std::bidirectional_iterator_tag, T>{
@@ -46,20 +39,25 @@ public:
         iterator(const iterator& it) : p(it.p) {}
         iterator& operator++() { ++p; return *this;}
         iterator& operator--() { --p; return *this;}
+        iterator operator++(int) {
+            decltype(*this) tmp(*this);
+            ++p;
+            return tmp;
+        }
+        iterator operator--(int) {
+            decltype(*this) tmp(*this);
+            --p;
+            return tmp;
+        }
         bool operator==(const iterator& rhs) {return p==rhs.p;}
         bool operator!=(const iterator& rhs) {return p!=rhs.p;}
         T& operator*() {return *p;}
     };
 
-    iterator begin(){ return iterator(&m_arr[0]);}
-    iterator end() { return iterator(m_arr + m_size);}
-    iterator rbegin(){ return iterator(&m_arr[m_size-1]);}
-    iterator rend(){ return iterator(m_arr -1);}
-    
-
-
-
+    iterator begin(){ return iterator(start); }
+    iterator end() { return iterator(current - 1); }
+    iterator rbegin(){ return iterator(current - 1); }
+    iterator rend(){ return iterator(start); }
 };
-
 
 #endif // VECTOR_H_INCLUDED

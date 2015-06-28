@@ -1,56 +1,57 @@
-#ifndef VECTOR_CPP
-#define VECTOR_CPP
+#ifndef VECTOR_HPP
+#define VECTOR_HPP
 
 #include "vector.h"
 #include <climits>
 
-
 template<typename T>
-vector<T>::vector(int cap) : m_size(0), m_capacity(cap)
-{
-    m_arr=new T[cap];
-}
+vector<T>::vector(int cap) : start(new T[cap]), current(start - 1), 
+        ending(start + cap + 1)
+{ }
 
 template<typename T>
 vector<T>::vector(const vector &o)
 {
-    copy(o);
+    T *tmp = new T [o.size()];
+    T *c = o.start, *tmpcpy = tmp;
+
+    while (c != o.ending) {
+        *tmpcpy = *c++;
+        tmpcpy++;
+    }
+
+    start = tmp;
+    ending = start + o.size();
+    current = start + (o.current - o.start);
 }
 
 template<typename T>
-vector<T>& vector<T>::operator=(const vector &o)
+vector<T> &vector<T>::operator=(const vector &o)
 {
-    if(this !=&o){
-        destroy();
-        copy(o);
+    if(this == &o)
+        return *this;
+
+    T *tmp = new T [o.size()];
+    T *c = o.start, *tmpcpy = tmp;
+
+    while (c != o.ending) {
+        *tmpcpy = *c++;
+        tmpcpy++;
     }
+
+    delete[] start;
+
+    start = tmp;
+    ending = start + o.size() + 1;
+    current = start + (o.current - o.start);
+
     return *this;
 }
 
 template<typename T>
 vector<T>::~vector()
 {
-    destroy();
-}
-
-
-template<typename T>
-void vector<T>::copy(const vector &o)
-{
-    m_arr=new T[o.m_capacity];
-
-    m_size=o.m_size;
-    m_capacity=o.m_capacity;
-
-    for(size_t i=0; i<m_size; i++)
-        m_arr[i]=o.m_arr[i];
-}
-
-template<typename T>
-void vector<T>::destroy()
-{
-    if(m_arr != NULL)
-        delete[] m_arr;
+    delete[] start;
 }
 
 template<typename T>
@@ -58,36 +59,38 @@ void vector<T>::resize(bool grow)
 {
     int new_cap;
     if(grow)
-        new_cap=2*m_capacity;
+        new_cap = size() << 1;
     else
-        new_cap = m_capacity/2;
+        new_cap = size() >> 1;
 
-    T* tmp=m_arr;
-    m_capacity=new_cap;
+    T *tmp = new T[new_cap];
+    T *tmpcpy = tmp, *itr = start;
 
-    m_arr=new T[m_capacity];
+    while (itr != ending) {
+        *tmpcpy = *itr++;
+        tmpcpy++;
+    }
 
-    for(size_t i=0; i<m_size; i++)
-        m_arr[i]=tmp[i];
-        
+    std::swap(start, tmp); // FIXME
+    ending = start + new_cap + 1;
+    current = start + (current - tmp);
     delete[] tmp;
-
 }
-
 
 template<typename T>
 void vector<T>::push_back(const T& a)
 {
-    if(m_size==m_capacity)
+    if((current + 1) >= ending)
         resize();
-    m_arr[m_size++]=a;
+    *++current = a;
 }
 
 template<typename T>
-T& vector<T>::operator[](int i)
+T& vector<T>::operator[](size_t i)
 {
-    if(i>=0 && i<m_size)
-        return m_arr[i];
+    if ((start + i) < current)
+        return start[i];
+
     throw std::out_of_range("index out of range");
 }
 
@@ -95,50 +98,55 @@ T& vector<T>::operator[](int i)
 template<typename T>
 void vector<T>::pop_back()
 {
-   m_size--;
-   if(m_size <= m_capacity/4)
-       resize(false);
-}
+    if (current < start)
+        throw std::out_of_range("array is empty");
 
-template<typename T>
-void vector<T>::insert(const T& elem, int idx)
-{
-    if(idx < 0 || idx >= m_size)
-        throw std::out_of_range("index out of range");
-
-    if(m_size == m_capacity)
-        resize();
-
-    for(size_t i = idx; i < m_size-1; i++)
-        m_arr[i+1] = m_arr[i];
-
-    m_arr[idx] = elem;
-    m_size++;
-}
-
-template<typename T>
-void vector<T>::remove(int idx)
-{
-    if(idx < 0 || idx >= m_size)
-        throw std::out_of_range("index out of range");
-
-    for(size_t i = idx +1; i < m_size; i++)
-        m_arr[i-1] = m_arr[i];
-    m_size--;
-
-    if(m_size <= m_capacity/4)
+    --current;
+    // I believe this should be removed >.<
+    if(((size_t) start + (size_t) current) <= 
+            ((size_t) ending - (size_t) start) / 4)
         resize(false);
 }
 
 template<typename T>
-int vector<T>::find(T& elem)
+void vector<T>::insert(const T &elem, size_t idx)
 {
-    for(size_t i = 0; i < m_size; i++){
-        if(m_arr[i] == elem)
-            return i;
-    }
-    return -1;
+    T *el = start + idx;
+    if (el > current)
+        throw std::out_of_range("index out of range");
+
+    if ((current + 1) >= ending)
+        resize();
+
+    while (el < current)
+        ++el = *(el - 1);
+
+    ++current;
+}
+
+template<typename T>
+void vector<T>::remove(size_t idx)
+{
+    T *el = start + idx, *c = current;
+    if (el > current)
+        throw std::out_of_range("index out of range");
+
+    while (c > el)
+        *--c = *(c + 1);
+
+    if(((size_t) start + (size_t) current) <= 
+            ((size_t) ending - (size_t) start) / 4)
+        resize(false);
+}
+
+template<typename T>
+ssize_t vector<T>::find(T& elem) noexcept
+{
+    for (T *itr = start; itr < current; itr++) 
+        if(*itr == elem)
+            return (itr - start);
+
+    return static_cast<ssize_t>(-1L);
 }
 
 #endif
-

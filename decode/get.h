@@ -6,7 +6,8 @@
 
 enum encodings {
     ENC_FLAC,
-    ENC_MP3
+    ENC_MP3,
+    ENC_UNK
 };
 
 // FIXME remove hardcode
