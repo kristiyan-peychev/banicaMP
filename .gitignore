@@ -27,12 +27,18 @@
 *.out
 *.app
 
-#vim swap files
+# vim swap files
 *.swp
 
+# cmake cache files
+CMakeCache*
 
+# all build subdirectories
+build/*
+playback/build/*
 playback/play/linux/play.h
 playback/play/linux/build/*
+playback/play/windows/build/*
 playback/playlist/build/*
 decode/build/*
 memory/build/*
