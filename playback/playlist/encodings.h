@@ -4,14 +4,28 @@
 #include <cstdio>
 #include <cstring>
 
-static const int NUMSIGNATURES = 4;
-static const int MAXSIZE = 12;
-static const char* SIGNATURES[NUMSIGNATURES] = {"fLaC","˙ű", "ID3", "RIFF....WAVE"}; 
-static const int SIZES[NUMSIGNATURES] = {4, 2, 3, 12};
-static const char* ENCODINGS[NUMSIGNATURES] = {"FLAC", "MP3", "MP3", "WAV"};
+#include "../../decode/get.h"
 
-inline const char* get_file_encoding(const char* path)
+namespace encode {
+    const int NUMSIGNATURES = 3;
+    const char* SIGNATURES[NUMSIGNATURES] = {"fLaC","˙ű", "ID3"}; 
+    constexpr int SIZES[NUMSIGNATURES] = {4, 2, 3};
+    constexpr auto get_max_size(void) {
+        int ret = SIZES[0];
+        int n = 1;
+        while (n < NUMSIGNATURES) {
+            ret = ret < SIZES[n] ? SIZES[n] : ret;
+            n++;
+        }
+        return ret;
+    }
+    constexpr int MAXSIZE = get_max_size();
+    const enum encodings ENCODINGS[NUMSIGNATURES] = {ENC_FLAC, ENC_MP3, ENC_MP3};
+}
+
+inline const enum encodings get_file_encoding(const char* path)
 {
+    using namespace encode;
     FILE* f = fopen(path, "r");
     char buff[MAXSIZE+1];
     fread(buff, sizeof(char), MAXSIZE, f);
@@ -20,8 +34,7 @@ inline const char* get_file_encoding(const char* path)
         if(strncmp(buff, SIGNATURES[i], SIZES[i]) == 0)
             return ENCODINGS[i];
     }
-    return "UNKNOWN";
-
+    return ENC_UNK;
 }
 
 #endif

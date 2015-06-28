@@ -2,8 +2,7 @@
 #include "encodings.h"
 #include "sys/wait.h"
 
-
-song::song(const char* p): info(p),path(NULL), dec(NULL), decoded_file(NULL),
+song::song(const char* p): info(p),path(NULL), dec(NULL), mem(MEM_SIZE),
         song_file(NULL), player(NULL), manual_stop(false)
 {
 	
@@ -20,6 +19,18 @@ song::~song()
 	    delete[] path;
 }
 
+void song::load_song(void)
+{
+   if (dec == NULL) {
+       song_file = fopen(path, "r");
+       dec = get_decoder(song_file, encoding);
+   }
+   dec->decode(&mem);
+}
+
+void song::clear_song(void) { }
+
+#if 0 // obsolete
 void song::load_song()
 {
     //load decoder
@@ -53,8 +64,8 @@ void song::clear_song()
         delete dec;
 
     //CAUSES DOUBLE FREE OR CORRUPTION
-    if(song_file != NULL)
-        fclose(song_file);
+    //if(song_file != NULL)
+        //fclose(song_file);
 
     if(player != NULL)
         delete player;
@@ -65,7 +76,7 @@ void song::clear_song()
     dec = NULL;
     
 }
-
+#endif
 
 const char* song::get_path() const
 {
@@ -77,19 +88,14 @@ const song_info& song::get_info() const
 	return info;
 }
 
-
-
-const char* song::get_encoding() const
+const enum encodings song::get_encoding() const
 {
 	return this->encoding;
 }
 
-
-void play_song(song& s)
+void song::play_song(song& s)
 {
-    printf("%s\n", s.info.title.toCString(true));
-    
-    s.load_song();
+    s.load_song(); // FIXME - we can do this asynchronously with the playback
 
     s.manual_stop = false;
    
@@ -101,15 +107,12 @@ void play_song(song& s)
     //tell playlist to play next song
     if(!s.manual_stop)
         observer.play_next_song();
-
-    printf("end of thread\n");
 }
 
 void song::start()
 {
     //start the song in a new thread
     t = std::thread(play_song, std::ref(*this));
-
     t.detach();
 }
 
@@ -129,7 +132,7 @@ void song::stop()
 
 void song::seek(int secs)
 {
-    if(player != NULL){
+    if(player != NULL)
         player->seek(BYTES_PER_SEC * secs);
-    }
 }
+

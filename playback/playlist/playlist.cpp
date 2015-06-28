@@ -65,7 +65,7 @@ void playlist::generate(const char* path)
             continue;
         }
         //if file is supported add to playlist
-        if( !file.is_dir && strcmp(get_file_encoding(file.path), "UNKNOWN") ){
+        if(!file.is_dir && get_file_encoding(file.path) != ENC_UNK) {
             add_song(file.path);
         }
         

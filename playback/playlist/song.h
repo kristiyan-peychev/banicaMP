@@ -16,6 +16,7 @@
 #include "playlist.h"
 
 #define BYTES_PER_SEC 44100 * 2 * 2
+#define MEM_SIZE 67'108'864 // Arbitrary constant
 
 struct song_info{
     TagLib::String title;  // song title
@@ -62,17 +63,20 @@ struct song_info{
 
 class song{
 private:
-  	song_info info;       // song info
-	char* path;           // file path
-	const char* encoding; // file encoding
-	decoder* dec;         //song decoder
-    FILE* decoded_file;   //decoded wav file
-    FILE* song_file;      //song file
-    play_wav* player;     // wav player
-    std::thread t;        //thread to play the song
-    bool manual_stop;     // indicates if user stopped song
+    song_info info;         // song info
+    char* path;             // file path
+    enum encodings encoding; // file encoding
+    decoder* dec;           //song decoder
+    //FILE* decoded_file;   //decoded wav file
+    memory mem;             // decoded wav info
+    FILE* song_file;        //song file
+    play_wav* player;       // wav player
+    std::thread t;          //thread to play the song
+    bool manual_stop;       // indicates if user stopped song
 
 
+private:
+    static void play_song(song&);
 public:
 	song(const char* );
 	~song();
@@ -83,7 +87,7 @@ public:
 
     const song_info& get_info() const; 
 	const char* get_path() const;
-    const char* get_encoding() const;
+    const enum encodings get_encoding() const;
 
 
     void start();
@@ -91,7 +95,6 @@ public:
     void stop();
     void seek(int);
 
-    friend void play_song(song&);
 };
 
 #endif
