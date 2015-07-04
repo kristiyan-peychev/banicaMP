@@ -26,11 +26,14 @@ private:
         void push(song*) noexcept;
     } song_handler;
 private:
-    vector<song*> list; //array of all the song
-    vector<int> queue;  // array with order of playing
+    vector<song *> list; //array of all the song
+    vector<song *> queue;  // array with order of playing
+    vector<song *> priority_queue; // array to specify songs 
+    size_t pq_pos;
+                        // to be played before the queue
+    size_t queue_pos;      // current position in queue
     int size;           // number of songs in playlist
     song* curr_song;    // current song
-    int queue_pos;      // current position in queue
     bool playing_now;   //is a song playing
     bool repeat;        //is repeat enabled
     bool shuffle;       // is shuffle enabled
@@ -46,14 +49,21 @@ public:
     ~playlist();
 
 
-    int get_size() const { return size;}
-    void play_song(int);
+    int get_size() const { return list.size();}
+    void play_song(size_t);
+    void play_song(song *);
     void play_next_song();
     void pause_song();
     void stop_song();
     void seek(int);
 
-    void remove_song(int);
+    void enqueue_prioriy(song *);
+    void remove_priority(song *);
+    void remove_priority(size_t idx);
+    void clear_priority();
+
+    void remove_song(size_t);
+    void remove_song(song *);
     void add_song(const char*);
     void add_song(song*);
 

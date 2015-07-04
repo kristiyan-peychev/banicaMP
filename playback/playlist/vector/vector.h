@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <iterator>
+#include <functional>
 
 template<typename T>
 class vector {
@@ -12,21 +13,24 @@ class vector {
 private:
     void resize(bool = true);
 public:
-    explicit vector(int = 4);
+    explicit vector(int = 8);
     vector(const vector &o);
     vector& operator=(const vector &);
     ~vector();
 
-    size_t size() const { return (current - start + 1); }
-    size_t capacity() const { return (ending - start - 1); }
+    bool empty() const;
+    size_t size() const { return (current - start); }
+    size_t capacity() const { return (ending - start); }
+    T& last() const noexcept { return *current; }
 
     void push_back(const T&);
     void pop_back();
     void remove(size_t);
     void insert(const T&, size_t);
     ssize_t find(T&) noexcept;
+    void clear() noexcept;
 
-    void sort(bool (*comp)(const T&, const T& ) = NULL);
+    void sort(std::function<bool(T&, T&)> &);
 
     T& operator[](size_t);
 
@@ -59,5 +63,7 @@ public:
     iterator rbegin(){ return iterator(current - 1); }
     iterator rend(){ return iterator(start); }
 };
+
+#include "vector.hpp"
 
 #endif // VECTOR_H_INCLUDED

@@ -36,20 +36,25 @@ playlist::playlist(const char* path, bool is_playlist): list(), size(0), curr_so
     }
 }
 
+#if 0
 playlist::playlist(): list(), size(0), curr_song(0),
     queue_pos(0), playing_now(false), repeat(false), shuffle(false)
 
 {
 }
+#endif
+
+playlist::playlist(): playing_now(false), repeat(false), shuffle(false),
+        paused(true), queue_pos(0), pq_pos(0)
+{
+}
 
 playlist::~playlist()
 {
-    int size = list.size();
+    size_t size = list.size();
     for(int i = 0; i < size; i++)
         delete list[i];
 }
-
-
 
 void playlist::generate(const char* path)
 {
@@ -101,59 +106,69 @@ void playlist::save(const char* path)
 {
 }
 
-void playlist::play_song(int pos)
+void playlist::play_song(size_t idx)
 {
-    //out of range
-    if(pos < 0 || pos >= size){
-        perror("Out of range\n");
-        return;
-    }
+    //set current queue pos
+    queue_pos = idx;
+    play_song(queue[idx]);
+}
+
+void playlist::play_song(song *s)
+{
+    if (s == NULL)
+        throw std::out_of_range("index is out of range");
 
     //unpause when clicked on paused song
-    if(paused && list[pos] == curr_song){
+    if(paused && s == curr_song){
         pause_song();
         return;
     }
 
     //stop previous song
-    if(playing_now)
+    if (playing_now) {
         stop_song();
-
+        playing_now = false;
+    }
     
-    //set current song
-    curr_song = list[pos];
-    //set current queue pos
-    queue_pos = queue.find(pos);
-    //start song
-    playing_now = true;
+    curr_song = s;
     curr_song->start();
-
-    //get next song number form queue
-    int next_queue_pos = queue[(queue_pos + 1) % size];
-    //load next song
-    list[next_queue_pos]->load_song();
-    //buggged idk why
-    //song_handler.push(list[next_queue_pos]);
+    playing_now = true;
 }
 
 void playlist::play_next_song()
 {
-    if(playing_now)
+    song *to_play;
+    if (playing_now) {
         stop_song();
-    if(!repeat && queue_pos == size -1){
+        playing_now = false;
+    }
+
+    if (!priority_queue.empty() && pq_pos < priority_queue.size()) {
+        to_play = priority_queue[++pq_pos]; // FIXME
+    } else {
+        if (pq_pos >= priority_queue.size()) {
+            priority_queue.clear();
+            pq_pos = 0;
+        }
+
+        to_play = queue[(++queue_pos %= size)];
+    }
+
+    if (!repeat && queue_pos >= queue.size() - 1){
         printf("end of playlist\n");
         return;
     }
-    queue_pos = (queue_pos + 1) % size;
-    
-    play_song(queue_pos);
+
+    curr_song->stop();
+    curr_song = to_play;
+    curr_song->start();
 }
 
 void playlist::pause_song()
 {
     if(playing_now){
         curr_song->pause();
-        paused = !paused;
+        paused = true;
     }
 }
 
@@ -165,52 +180,91 @@ void playlist::stop_song()
     }
 }
 
-//bugged again
-//wtf man
 void playlist::seek(int secs)
 {
     if(playing_now)
         curr_song->seek(secs);
 }
 
-void playlist::remove_song(int pos)
+void playlist::remove_song(size_t idx)
 {
-    //find song number in queue
-    int idx = queue.find(pos);
-    if(idx == -1)
-        perror("Item not in playlist!\n");
-    else{
-        //remove song from playlist and queue
-        list.remove(pos);
-        queue.remove(idx);
-        size--;
+    remove_song(queue[idx]);
+}
+
+void playlist::remove_song(song *s)
+{
+    ssize_t idx;
+
+    idx = list.find(s);
+    if (idx > 0) {
+        list.remove(idx);
+        return;
     }
+
+    idx = queue.find(s);
+    if (idx > 0)
+        queue.remove(idx);
+
+
+    idx = priority_queue.find(s);
+    if (idx > 0)
+        priority_queue.remove(idx);
 }
 
 void playlist::add_song(const char* path)
 {
     song* new_song = new song(path);
-    //don't add songs without metadata
-    //temporary enabled for debugging reasons
-    //if(new_song->get_info().length != 0){
-        list.push_back(std::ref(new_song));
-        queue.push_back(size++);
-    //}else
-      //  delete new_song;
-
+    list.push_back(new_song);
+    queue.push_back(list.last());
 }
 
+void playlist::enqueue_prioriy(song *s)
+{
+    if (priority_queue.empty())
+        pq_pos = 0;
+
+    priority_queue.push_back(s);
+}
+
+void playlist::remove_priority(size_t idx)
+{
+    priority_queue.remove(idx);
+}
+
+void playlist::remove_priority(song *s)
+{
+    size_t idx = priority_queue.find(s);
+    priority_queue.remove(idx);
+}
+
+void playlist::clear_priority()
+{
+    priority_queue.clear();
+}
+
+// we're going to try and make list a set
+// of the songs within the playlist, since
+// they are going to be freed at the destructor
+// call, and if two pointers point to the same
+// song we're going to have a bad time, thus
+// a linear-time enqueueing of a song
 void playlist::add_song(song* s)
 {
-    list.push_back(s);
-    queue.push_back(size++);
+    size_t idx;
+    if ((idx = list.find(s)) < 0) {
+        list.push_back(s);
+        queue.push_back(list.last());
+    } else {
+        queue.push_back(list[idx]);
+    }
 }
 
 void playlist::shuffle_list()
 {
+    priority_queue.clear();
     srand(time(NULL));
-    for(size_t i = size - 1; i >0; i--){
-        size_t r = rand() % size;
+    for (size_t i = queue.size() - 1; i > 0; i--) {
+        size_t r = rand() % queue.size();
         std::swap(queue[i], queue[r]);
     }
 }

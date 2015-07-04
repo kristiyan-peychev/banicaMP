@@ -54,6 +54,7 @@ vector<T>::~vector()
     delete[] start;
 }
 
+#include <iostream>
 template<typename T>
 void vector<T>::resize(bool grow)
 {
@@ -88,6 +89,7 @@ void vector<T>::push_back(const T& a)
 template<typename T>
 T& vector<T>::operator[](size_t i)
 {
+    std::cout << start + i << ' ' << current << '\n' << i << '\n';
     if ((start + i) < current)
         return start[i];
 
@@ -147,6 +149,24 @@ ssize_t vector<T>::find(T& elem) noexcept
             return (itr - start);
 
     return static_cast<ssize_t>(-1L);
+}
+
+template<typename T>
+void vector<T>::sort(std::function<bool(T&, T&)> &compar)
+{
+    // TODO
+}
+
+template<typename T>
+bool vector<T>::empty(void) const
+{
+    return size() == 0;
+}
+
+template<typename T>
+void vector<T>::clear(void) noexcept
+{
+    current = start;
 }
 
 #endif
