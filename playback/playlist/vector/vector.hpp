@@ -152,12 +152,6 @@ ssize_t vector<T>::find(T& elem) noexcept
 }
 
 template<typename T>
-void vector<T>::sort(std::function<bool(T&, T&)> &compar)
-{
-    // TODO
-}
-
-template<typename T>
 bool vector<T>::empty(void) const
 {
     return size() == 0;
@@ -167,6 +161,49 @@ template<typename T>
 void vector<T>::clear(void) noexcept
 {
     current = start;
+}
+
+template<typename T>
+T *vector<T>::sort(T *start, size_t size, std::function<bool(T&, T&)> &cmp)
+{
+    if (size <= 1)
+        return start;
+
+    T *ret = new T[size];
+    T *left = new T [size];
+    T *right = (T *) ((size_t) left + (size / 2));
+
+    size_t i;
+    for (i = 0; i < (size / 2); ++i)
+        left[i] = start[i];
+
+    for (size_t j = 0; i < size; ++i, ++j)
+        right[j] = start[i];
+
+    T *left_f = sort(left, size / 2, cmp);
+    T *right_f = sort(right, size / 2, cmp);
+    delete[] left;
+    delete[] right;
+    left = left_f;
+    right = right_f;
+
+    i = 0;
+    size_t j = 0, f = 0;
+    for (; i < size; ++i) {
+        if (j < (size / 2) && cmp(left[j], right[f])) {
+            ret[i] = left[j++];
+        } else if (f < (size / 2) && cmp(right[f], left[j])) {
+            ret[i] = right[f++];
+        }
+    }
+    delete[] left;
+    return ret;
+}
+
+template<typename T>
+void vector<T>::sort(std::function<bool(T&, T&)> &cmp)
+{
+    sort(this->start, this->size(), cmp);
 }
 
 #endif

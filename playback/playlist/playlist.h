@@ -40,9 +40,6 @@ private:
     bool paused;        // is song paused
 
     void generate(const char*);
-    
-    bool comp_song(const song&, const song&, char);
-
 public:
     playlist();
     playlist(const char* =NULL, bool=false);

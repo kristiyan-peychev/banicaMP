@@ -274,26 +274,27 @@ void playlist::toggle_repeat()
     repeat = !repeat;
 }
 
+static std::function<bool(song*&, song*&)> comp_song(char ch)
+{
+    switch (ch){
+    case 't' : return [](song *&s1, song *&s2) {return s1->get_info().title < s2->get_info().title;};
+    case 'a' : return [](song *&s1, song *&s2) {return s1->get_info().artist < s2->get_info().artist;};
+    case 'l' : return [](song *&s1, song *&s2) {return s1->get_info().length < s2->get_info().length;};
+    default : return  [](song *&s1, song *&s2) {return s1->get_info().title < s2->get_info().title;};
+    }
+
+}
+
 void playlist::toggle_shuffle()
 {
-    if(shuffle){
+    if (shuffle) {
+        auto compar = comp_song('t');
         shuffle = false;
-        queue.sort();
-    }
-    else{
+        queue.sort(compar);
+    } else {
         shuffle = true;
         shuffle_list();
     }
 }
 
-bool playlist::comp_song(const song& s1, const song& s2, char ch )
-{
-    //can be done better, but good enough for now
-    switch (ch){
-        case 't' : return s1.get_info().title < s2.get_info().title; break;
-        case 'a' : return s1.get_info().artist < s2.get_info().artist; break;
-        case 'l' : return s1.get_info().length < s2.get_info().length; break;
-        default : return s1.get_info().title < s2.get_info().title; break;
-    }
 
-}

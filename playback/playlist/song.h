@@ -14,6 +14,7 @@
 #include "../../decode/get.h"
 #include "../play/play.h"
 #include "playlist.h"
+#include "encodings.h"
 
 #define BYTES_PER_SEC 44100 * 2 * 2
 #define MEM_SIZE 67'108'864 // Arbitrary constant

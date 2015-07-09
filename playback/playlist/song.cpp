@@ -1,5 +1,4 @@
 #include "song.h"
-#include "encodings.h"
 #include "sys/wait.h"
 
 song::song(const char* p): info(p),path(NULL), dec(NULL), mem(MEM_SIZE),

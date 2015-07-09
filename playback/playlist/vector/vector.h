@@ -11,6 +11,7 @@ template<typename T>
 class vector {
     T *start, *current, *ending;
 private:
+    T *sort(T *, size_t, std::function<bool(T&, T&)> &);
     void resize(bool = true);
 public:
     explicit vector(int = 8);
