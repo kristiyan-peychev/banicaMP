@@ -6,6 +6,9 @@
  * alter speed
  */
 
+#define _LINUX // FIXME
+#include "../../memory/memory.h"
+
 #include <cstdio>
 #include <exception>
 

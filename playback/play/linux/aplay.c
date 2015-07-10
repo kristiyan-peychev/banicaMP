@@ -94,6 +94,11 @@ static fftw_complex *dft_in;
 static fftw_complex *dft_out;
 static fftw_plan dft_plan;
 
+static _Bool shared_mem_flag = 0;
+static int shared_mem_size;
+static int shmid;
+static char *shptr;
+
 /* ^ custom */
 
 static snd_pcm_sframes_t (*readi_func)(snd_pcm_t *handle, void *buffer, snd_pcm_uframes_t size);
@@ -247,9 +252,10 @@ static inline void do_apply_filters(u_char *data, size_t count)
 {
     int i, j = 0;
     for (i = 0; j < count; i++)
-        dft_in[i][0] = (double) ((data[j++] << 8) | data[j++]);
+        /*dft_in[i][0] = (double) ((data[j++] << 8) | data[j++]);*/
+        data[j++] *= 0.6;
 
-    apply_filters();
+    /*apply_filters();*/
 }
 
 static void toggle_pause(int signum)
@@ -268,14 +274,14 @@ static void toggle_pause(int signum)
 
 static void seek(int signum)
 {
-    int reed;
+    int reed, sedem;
     if (read(parent_pipe, &reed, sizeof(reed)) < 0)
         return;
 
-    /*toggle_pause(0);*/
-    if (fseek(stdin, reed, SEEK_CUR))
+    toggle_pause(0);
+    if (sedem = fseek(stdin, reed, SEEK_CUR))
         fprintf(stderr, "Error recieving seek value\n");
-    /*toggle_pause(0);*/
+    toggle_pause(0);
 }
 
 static void vol_test(int signum)
@@ -283,6 +289,61 @@ static void vol_test(int signum)
     /*TODO*/
 }
 
+/* init_shared
+ * This function shall be used to initialize a shared segment of memory
+ * from which this program will read a decoded song and play it. What it
+ * does is it reads the segment's size and file name from a parent process via a
+ * FIFO and it opens it for reading. Zeroes must be used to separate the size
+ * from the file name, this is needed for obvious reasons.
+ */
+
+void init_shared(void)
+{
+    int rd;
+    int size;
+    int shmkey = 0;
+    int f = 0;
+    char reed;
+    char *naem = (char *) malloc(256 * sizeof(*naem));
+
+    while ((rd = read(parent_pipe, &f, sizeof(f))) > 0) {
+        if (f > 0) {
+            size = f;
+            break;
+        }
+    }
+    f = 0;
+    while ((rd = read(parent_pipe, &reed, sizeof(reed))) > 0) {
+        *(naem + f) = reed;
+        f += rd;
+
+        if (reed == 0)
+            break;
+    }
+
+    shmkey = ftok(naem, '&');
+    if (shmkey == -1) {
+        perror("ftok");
+        exit(EXIT_FAILURE);
+    }
+
+    shmid = shmget(shmkey, size, 0644 | IPC_CREAT);
+    if (shmid == -1) {
+        perror("shmget");
+        exit(EXIT_FAILURE);
+    }
+    /* TODO: get the actual pointers */
+
+    shptr = (char *) shmat(shmid, NULL, 0);
+
+    if (shptr == (void *) (-1)) {
+        perror("shmat");
+        exit(EXIT_FAILURE);
+    }
+    
+    shared_mem_size = size;
+    shared_mem_flag = 1;
+}
 /* /custom */
 
 int main(int argc, char *argv[])
@@ -344,6 +405,7 @@ int main(int argc, char *argv[])
         {"separate-channels", 0, 0, 'I'},
         {"playback", 0, 0, 'P'},
         {"capture", 0, 0, 'C'},
+        {"shared-mem", 0, 0, 'a'},
 /*#ifdef CONFIG_SUPPORT_CHMAP*/
         /*{"chmap", 1, 0, 'm'},*/
 /*#endif*/
@@ -486,6 +548,9 @@ int main(int argc, char *argv[])
             if (file_type == FORMAT_DEFAULT)
                 file_type = FORMAT_WAVE;
             break;
+        case 'a': // AAAAAAA
+            init_shared();
+            break;
 #ifdef CONFIG_SUPPORT_CHMAP
         case 'm':
             channel_map = snd_pcm_chmap_parse_string(optarg);
@@ -618,22 +683,9 @@ static ssize_t safe_read(int fd, void *buf, size_t count)
     return result;
 }
 
-/*
- * Test, if it is a .VOC file and return >=0 if ok (this is the length of rest)
- *                                       < 0 if not 
- */
-static int test_vocfile(void *buffer)
+static ssize_t shared_read(void *buf, size_t count)
 {
-    VocHeader *vp = buffer;
-
-    if (!memcmp(vp->magic, VOC_MAGIC_STRING, 20)) {
-        vocminor = LE_SHORT(vp->version) & 0xFF;
-        vocmajor = LE_SHORT(vp->version) / 256;
-        if (LE_SHORT(vp->version) != (0x1233 - LE_SHORT(vp->coded_ver)))
-            return -2;  /* coded version mismatch */
-        return LE_SHORT(vp->headerlen) - sizeof(VocHeader); /* 0 mostly */
-    }
-    return -1;      /* magic string fail */
+    // TODO
 }
 
 /*
@@ -1655,54 +1707,6 @@ static ssize_t pcm_write(u_char *data, size_t count)
     return result;
 }
 
-static ssize_t pcm_writev(u_char **data, unsigned int channels, size_t count)
-{
-    ssize_t r;
-    size_t result = 0;
-
-    if (count != chunk_size) {
-        unsigned int channel;
-        size_t offset = count;
-        size_t remaining = chunk_size - count;
-        for (channel = 0; channel < channels; channel++)
-            snd_pcm_format_set_silence(hwparams.format, data[channel] + offset * bits_per_sample / 8, remaining);
-        count = chunk_size;
-    }
-    data = remap_datav(data, count);
-    while (count > 0 && !in_aborting) {
-        unsigned int channel;
-        void *bufs[channels];
-        size_t offset = result;
-        for (channel = 0; channel < channels; channel++)
-            bufs[channel] = data[channel] + offset * bits_per_sample / 8;
-        if (test_position)
-            do_test_position();
-        r = writen_func(handle, bufs, count);
-        if (test_position)
-            do_test_position();
-        if (r == -EAGAIN || (r >= 0 && (size_t)r < count)) {
-            if (!test_nowait)
-                snd_pcm_wait(handle, 100);
-        } else if (r == -EPIPE) {
-            xrun();
-        } else if (r == -ESTRPIPE) {
-            suspend();
-        } else if (r < 0) {
-            error(_("writev error: %s"), snd_strerror(r));
-            prg_exit(EXIT_FAILURE);
-        }
-        if (r > 0) {
-            if (vumeter) {
-                for (channel = 0; channel < channels; channel++)
-                    compute_max_peak(data[channel], r);
-            }
-            result += r;
-            count -= r;
-        }
-    }
-    return result;
-}
-
 /* setting the globals for playing raw data */
 static inline void init_raw_data(void)
 {
@@ -1788,7 +1792,8 @@ static void playback(char *name)
     fd = fileno(stdin);
     name = "stdin";
     /* read bytes for WAVE-header */
-    if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
+    if (shared_mem_flag) {
+    } else if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
         pbrec_count = calc_count();
         playback_go(fd, dtawave, pbrec_count, FORMAT_WAVE, name);
     } else {

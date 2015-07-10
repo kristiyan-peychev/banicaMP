@@ -22,27 +22,21 @@ static const char *aplay_args[] = {
     "-" // read from stdin
 };
 
-/* unused for now */
-static void throw_end_of_song(int) throw()
-{
-	throw playbackend_except();
-}
-
-alsa_wav_player::alsa_wav_player(void) { }
-
-alsa_wav_player::alsa_wav_player(const alsa_wav_player &) { }
-
-alsa_wav_player &alsa_wav_player::operator=(const alsa_wav_player &) { return *this; }
-
 alsa_wav_player::alsa_wav_player(FILE *filep) :
-		is_paused(true), filedsc(fileno(filep)), childpid(0), child_pipe(0)
+		is_paused(true), childpid(0), child_pipe(0), filedsc(fileno(filep)),
+        mem(NULL), flg(FLG_FILE)
 {
     //mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
     //child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
 }
 
+alsa_wav_player::alsa_wav_player(memory *m) :
+        is_paused(true), filedsc(-1), childpid(0), mem(m), flg(FLG_MEM)
+{ }
+
 alsa_wav_player::alsa_wav_player(int fd) :
-		is_paused(true), filedsc(fd), childpid(0)
+		is_paused(true), child_pipe(0), childpid(0), filedsc(fd), mem(NULL),
+        flg(FLG_FILE)
 { }
 
 alsa_wav_player::~alsa_wav_player(void)
@@ -55,41 +49,43 @@ void alsa_wav_player::begin(void)
 {
 	childpid = fork();
 
+    if (childpid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
 	if (childpid) {
 		is_paused = false;
+
         mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
         child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
+
         wait(NULL); // FIXME?
-		// LOLDIS
-        #if 0
-		struct sigaction sa;
-		sa.sa_flags = SA_RESTART;
-		sa.sa_handler = throw_end_of_song;
-		sigfillset(&sa.sa_mask);
-		if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-				perror("sigaction");
-				exit(EXIT_FAILURE);
-		}
-        #endif
+        if (flg & FLG_FILE)
+            lseek(filedsc, 0, SEEK_SET);
 	} else {
 		unsigned int f = 1;
-		char **execarg = new char * [8];
-		//char *pwd = get_current_dir_name();
+		char **execarg = new char * [9];
 		*execarg = new char [NAME_SIZE];
 		strcpy(*execarg, pwd);
-		//free(pwd);
 		strcat(*execarg, *aplay_args);
 		while (f < /*sizeof(aplay_args)*/7) {
 			execarg[f] = new char [sizeof(aplay_args[f]) + 1];
 			strcpy(execarg[f], aplay_args[f]);
 			++f;
 		}
+        if (flg & FLG_MEM) {
+            // read from shared mem flag
+            execarg[f] = new char [2];
+            strcpy(execarg[f], "a");
+            ++f;
+        }
 		execarg[f] = (char *) NULL;
 
-		if (dup2(filedsc, STDIN_FILENO) == -1) {
+		if ((flg & FLG_FILE) && dup2(filedsc, STDIN_FILENO) == -1) {
 			perror("dup2");
-			exit(EXIT_FAILURE); // FIXME
+			exit(EXIT_FAILURE);
 		}
+
 		execvp(*execarg, execarg);
 
 		perror("execv");
@@ -105,7 +101,7 @@ void alsa_wav_player::play(void)
 	if (is_paused) {
 		kill(childpid, SIGUSR1);
 		is_paused = false;
-	}
+    }
 }
 
 void alsa_wav_player::pause(void)
