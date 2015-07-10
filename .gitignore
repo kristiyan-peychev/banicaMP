@@ -32,10 +32,17 @@
 
 # cmake cache files
 CMakeCache*
+CMakeFiles*
+cmake_install*
+Makefile*
+
+#all test executables
+test/[^.]*
 
 # all build subdirectories
 build/*
 playback/build/*
+playback/play/build/*
 playback/play/linux/play.h
 playback/play/linux/build/*
 playback/play/windows/build/*
