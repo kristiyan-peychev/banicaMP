@@ -8,11 +8,14 @@
 #include <sys/shm.h>
 #endif
 
+void init_mem(void);
+
 class memory {
     size_t size;
     void *start;
     void *ending;
 #ifdef _LINUX
+    char *segpath;
     int rnd_sht;
     key_t key;
     int shmid;
@@ -22,7 +25,7 @@ public:
     memory(const memory &) = delete;
     memory &operator=(const memory &) = delete;
 public:
-    explicit memory(size_t) throw();
+    explicit memory(size_t, const char *) noexcept(false);
     ~memory(void);
 public:
     // Change names?
@@ -30,7 +33,7 @@ public:
     void * const end(void) const noexcept;
     size_t cap(void) const noexcept; // capacity
 public:
-    void expand(size_t) throw();
+    void expand(size_t) noexcept(false);
 };
 
 #endif /* end of include guard: MEMORY_LMD9Q5J4 */

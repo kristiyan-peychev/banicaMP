@@ -7,6 +7,8 @@
 // directly use two implementations which have _nothing_ in 
 // common beside pointers.
 
+void init_mem(void) { return; }
+
 memory::memory(size_t sz) throw() : size(sz)
 {
     start = (void *) new char [size];
