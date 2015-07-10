@@ -1,6 +1,7 @@
 #include "../play.h"
 
-#define WAV_FPATH "/home/kawaguchi/test.wav"
+// Change this to a wave file to test the play
+#define WAV_FPATH "/home/kawaguchi/test.wav" 
 
 #include <unistd.h>
 #include <cstdio>
@@ -20,16 +21,16 @@ int main(int argc, const char *argv[]) {
 	//player->begin();
     std::thread t1(f, player);
     fprintf(stderr, "Begin?\n");
-	sleep(10);
-    fprintf(stderr, "wtf?\n");
-	player->pause();
-    fprintf(stderr, "HUH?\n");
-	sleep(50);
-	//sleep(5);
-	//player->pause();
-	//player->play();
-	//sleep(5);
-	//player->toggle_pause();
-	//player->toggle_pause();
+    sleep(5);
+    player->pause();
+    fprintf(stderr, "lawl\n");
+    player->play();
+    sleep(5);
+    fprintf(stderr, "seven\n");
+    player->toggle_pause();
+    player->toggle_pause();
+    sleep(4);
+    player->stop();
+    t1.join();
 return 0;
 }
