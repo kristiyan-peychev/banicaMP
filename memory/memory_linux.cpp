@@ -36,16 +36,18 @@ static const char next = '&'; // assuming only one song will play at one time
 
 memory::memory(size_t size, const char *segname) noexcept(false) : size(size)
 {
-    //if (size <= 128) // you're retarded for asking for that little memory
-        //throw std::bad_alloc(); // throw something else?
     int fd;
     init_mem();
 
-    segpath = (char *) malloc((strlen(homedir) + strlen(segname) + 16) * sizeof(*segpath));
+    segpath = (char *) malloc((strlen(homedir) + strlen(segname) + 16)
+            * sizeof(*segpath));
+
     if (segpath == NULL)
         throw std::bad_alloc("failed to allocate memory");
     sprintf(segpath, "%s/.banicamp", homedir);
 
+    // the following two errors are far too critical to
+    // just let them off as exceptions, so we're exiting
     fd = mkdir(segpath, 0644);
     if (fd != 0 && fd != EEXIST) {
         perror("mkdir");
@@ -103,7 +105,7 @@ size_t memory::cap(void) const noexcept
 
 void memory::expand(size_t add) noexcept(false)
 {
-    throw not_implemented();
+    throw not_implemented(); // FIXME
     return;
 }
 
