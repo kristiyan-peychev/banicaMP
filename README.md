@@ -1,5 +1,7 @@
 ##banica Music Player
 ###Purposes and goals
+
+[![Join the chat at https://gitter.im/kristiyan-peychev/banicaMP](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/kristiyan-peychev/banicaMP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 We started this as something to do in our spare time, and it still is. TODO: Write something emotional here.
 
 Goals? Ain't nobody got time for that.
