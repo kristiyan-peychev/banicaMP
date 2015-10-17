@@ -13,6 +13,6 @@ And about compilation: Later.
 *   Get more decoders;
 *   Make a proper GUI;
 *   Make a proper CLI;
-*   Add a compile-all CMakeLists file;
+*   ~~Add a compile-all CMakeLists file~~;
 *   Comments! Comments all around!
 *   Edit TODOs.
