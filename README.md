@@ -1,12 +1,14 @@
 ##banica Music Player
 ###Purposes and goals
 We started this as something to do in our spare time, and it still is. TODO: Write something emotional here.
-
-Goals? Ain't nobody got time for that.
 ###Compilation and Installation
-This is still in pre-pre-alpha version, so there is no implementation of all the modules floating around, so you will have to wait if you want to use this.
+The player uses CMake as its main build script _for now_.
+To build the project just execute:
+`mkdir build`
+`cd build`
+`cmake ..`
+`make`
 
-And about compilation: Later.
 ###TODOs
 *   Write a proper README;
 *   Look at TODOs in subdirs;
