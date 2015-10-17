@@ -22,7 +22,7 @@ private:
     int child_pipe;
 
 	int filedsc;
-    memory *mem;
+    //memory *mem;
     bool flg;
 public:
 	explicit alsa_wav_player(FILE *);

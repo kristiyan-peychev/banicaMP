@@ -65,30 +65,28 @@ void playlist::generate(const char* path)
         tinydir_file file;
 
         if(tinydir_readfile(&dir, &file) == -1){
-            perror("Error reading file\n");
             tinydir_next(&dir);
             continue;
         }
+
         //if file is supported add to playlist
         if(!file.is_dir && get_file_encoding(file.path) != ENC_UNK) {
             add_song(file.path);
         }
-        
+
         //recursively search all dirs
         if(file.is_dir && strcmp(file.name, ".") && strcmp(file.name, ".."))
             generate(file.path);
 
         tinydir_next(&dir);
-
     }
     tinydir_close(&dir);
 }
 
 void playlist::print_songs()
 {
-    for(int i = 0; i < list.size(); i++){
+    for(int i = 0; i < list.size(); i++)
         printf("%d: %s %d\n",i, list[i]->get_info().title.toCString(true), list[i]->get_info().length);
-    }
 
     for(int i = 0; i < queue.size(); i++)
         printf("%d ", queue[i]);

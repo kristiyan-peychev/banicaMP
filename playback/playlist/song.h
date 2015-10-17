@@ -69,9 +69,8 @@ private:
     char* path;             // file path
     enum encodings encoding; // file encoding
     decoder* dec;           //song decoder
-    //FILE* decoded_file;   //decoded wav file
-    memory mem;             // decoded wav info
-    FILE* song_file;        //song file
+    FILE *decoded_file;   //decoded wav file
+    FILE *song_file;        //song file
     play_wav* player;       // wav player
     std::thread t;          //thread to play the song
     bool manual_stop;       // indicates if user stopped song

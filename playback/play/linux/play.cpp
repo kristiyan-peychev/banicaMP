@@ -23,25 +23,27 @@ static const char *aplay_args[] = {
 };
 
 alsa_wav_player::alsa_wav_player(FILE *filep) :
-		is_paused(true), childpid(0), child_pipe(0), filedsc(fileno(filep)),
-        mem(NULL), flg(FLG_FILE)
+        is_paused(true), childpid(0), child_pipe(0)/*, filedsc(fileno(filep))*/,
+        /*mem(NULL), */flg(FLG_FILE)
 {
+    printf("alsa_wav_player: filep:%p\n", filep);
+    filedsc = fileno(filep);
     //mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
     //child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
 }
 
-alsa_wav_player::alsa_wav_player(memory *m) :
-        is_paused(true), filedsc(-1), childpid(0), mem(m), flg(FLG_MEM)
-{ }
+//alsa_wav_player::alsa_wav_player(memory *m) :
+        //is_paused(true), filedsc(-1), childpid(0), mem(m), flg(FLG_MEM)
+//{ }
 
 alsa_wav_player::alsa_wav_player(int fd) :
-		is_paused(true), child_pipe(0), childpid(0), filedsc(fd), mem(NULL),
+        is_paused(true), child_pipe(0), childpid(0), filedsc(fd)/*, mem(NULL)*/,
         flg(FLG_FILE)
 { }
 
 alsa_wav_player::~alsa_wav_player(void)
 {
-	stop();
+    stop();
     close(child_pipe);
 }
 

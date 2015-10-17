@@ -105,7 +105,7 @@ void vector<T>::pop_back()
 
     --current;
     // I believe this should be removed >.<
-    if(((size_t) start + (size_t) current) <= 
+    if (((size_t) start + (size_t) current) <=
             ((size_t) ending - (size_t) start) / 4)
         resize(false);
 }
