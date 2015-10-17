@@ -49,6 +49,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <endian.h>
+#include <sys/ipc.h>
 #include "aconfig.h"
 #include "gettext.h"
 #include "formats.h"
@@ -153,7 +154,7 @@ static snd_output_t *log;
 static long long max_file_size = 0;
 static int max_file_time = 0;
 static int use_strftime = 0;
-volatile static int recycle_capture_file = 0;
+static volatile int recycle_capture_file = 0;
 static long term_c_lflag = -1;
 static int dump_hw_params = 0;
 
@@ -176,27 +177,8 @@ static unsigned int *hw_map = NULL; /* chmap to follow */
 static void playback(char *filename);
 static void playbackv(char **filenames, unsigned int count);
 
-/*static void begin_voc(int fd, size_t count);*/
-/*static void end_voc(int fd);*/
 static void begin_wave(int fd, size_t count);
 static void end_wave(int fd);
-/*static void begin_au(int fd, size_t count);*/
-/*static void end_au(int fd);*/
-
-#if 0
-static const struct fmt_capture {
-    void (*start) (int fd, size_t count);
-    void (*end) (int fd);
-    char *what;
-    long long max_filesize;
-} fmt_rec_table[] = {
-    {   NULL,       NULL,       N_("raw data"),     LLONG_MAX },
-    {   begin_wave,  end_wave,    N_("VOC"),      16000000LL },
-    /* FIXME: can WAV handle exactly 2GB or less than it? */
-    {   begin_wave, end_wave,   N_("WAVE"),     2147483648LL },
-    {   begin_wave,   end_wave,     N_("Sparc Audio"),  LLONG_MAX }
-};
-#endif
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define error(...) do {\
@@ -284,11 +266,6 @@ static void seek(int signum)
     toggle_pause(0);
 }
 
-static void vol_test(int signum)
-{
-    /*TODO*/
-}
-
 /* init_shared
  * This function shall be used to initialize a shared segment of memory
  * from which this program will read a decoded song and play it. What it
@@ -364,15 +341,15 @@ int main(int argc, char *argv[])
     sb.sa_handler = seek;
     sigfillset(&sb.sa_mask);
 
-    struct sigaction stest;
-    stest.sa_flags = SA_RESTART;
-    stest.sa_handler = vol_test;
-    sigfillset(&stest.sa_mask);
+    /*struct sigaction stest;*/
+    /*stest.sa_flags = SA_RESTART;*/
+    /*stest.sa_handler = vol_test;*/
+    /*sigfillset(&stest.sa_mask);*/
 
     signal(SIGTERM, signal_handler);
 
     if (sigaction(SIGUSR1, &sa, NULL) == -1 || 
-            sigaction(SIGABRT, &stest, NULL) == -1 || 
+            /*sigaction(SIGABRT, &stest, NULL) == -1 || */
             sigaction(SIGINT, &sb, NULL) == -1)
     {
         perror("sigaction");

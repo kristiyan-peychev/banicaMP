@@ -1,7 +1,7 @@
 #include "song.h"
 #include "sys/wait.h"
 
-song::song(const char* p): info(p),path(NULL), dec(NULL), mem(MEM_SIZE),
+song::song(const char* p): info(p),path(NULL), dec(NULL), mem(MEM_SIZE, "TEST"),
         song_file(NULL), player(NULL), manual_stop(false)
 {
 	

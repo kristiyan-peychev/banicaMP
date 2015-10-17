@@ -12,12 +12,13 @@
 
 #include "../../decode/decoder.h"
 #include "../../decode/get.h"
+#include "../../memory/memory.h"
 #include "../play/play.h"
 #include "playlist.h"
 #include "encodings.h"
 
-#define BYTES_PER_SEC 44100 * 2 * 2
-#define MEM_SIZE 67'108'864 // Arbitrary constant
+#define BYTES_PER_SEC (44100 * 2 * 2)
+#define MEM_SIZE ((size_t) 67'108'864) // Arbitrary constant
 
 struct song_info{
     TagLib::String title;  // song title
@@ -62,7 +63,7 @@ struct song_info{
 };
 
 
-class song{
+class song {
 private:
     song_info info;         // song info
     char* path;             // file path

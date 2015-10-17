@@ -2,11 +2,12 @@
 
 #define MEMORY_LMD9Q5J4
 
-#ifdef _LINUX
+#if defined(__linux__)
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
+#include <cstdlib>
 
 void init_mem(void);
 
@@ -14,7 +15,7 @@ class memory {
     size_t size;
     void *start;
     void *ending;
-#ifdef _LINUX
+#if defined(__linux__)
     char *segpath;
     int rnd_sht;
     key_t key;

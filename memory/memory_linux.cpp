@@ -1,7 +1,7 @@
-#define _LINUX
 #include "memory.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <pwd.h>
 
 #include <cstdlib>
@@ -43,7 +43,7 @@ memory::memory(size_t size, const char *segname) noexcept(false) : size(size)
             * sizeof(*segpath));
 
     if (segpath == NULL)
-        throw std::bad_alloc("failed to allocate memory");
+        throw std::bad_alloc();
     sprintf(segpath, "%s/.banicamp", homedir);
 
     // the following two errors are far too critical to
@@ -64,20 +64,20 @@ memory::memory(size_t size, const char *segname) noexcept(false) : size(size)
     key = ftok(segpath, next); // FIXME
     if (key == -1) {
         perror("ftok");
-        throw std::bad_alloc("could not get a segment from file");
+        throw std::bad_alloc();
     }
 
     shmid = shmget(key, this->size, 0644 | IPC_CREAT);
     if (shmid == -1) {
         perror("shmget");
-        throw std::bad_alloc("count not get a segment from key");
+        throw std::bad_alloc();
     }
 
     start = (char *) shmat(shmid, (void *) 0, 0);
     ending = (void *) ((size_t) start + size);
     if (start == (void *) (-1)) {
         perror("shmat");
-        throw std::bad_alloc("failed to get a pointer in the shared segment");
+        throw std::bad_alloc();
     }
 }
 
