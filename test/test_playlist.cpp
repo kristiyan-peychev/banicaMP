@@ -16,12 +16,13 @@ void print_help(){
 }
 
 int main(){
-    playlist p("/falos/random/Music/");
+    playlist p("/media/win/Downloads/Music/OST.Avengers.Assemble.VA.2012.MP3.320kbps - SMG/");
     observer.set_playlist(&p);
     p.print_songs();
     char command[20];
     int a;
     while(true){
+        try{
         printf("\n> ");
         scanf("%s",command);
         if(!strcmp(command,"list"))
@@ -44,6 +45,10 @@ int main(){
             print_help();
         else if(!strcmp(command, "quit"))
             break;
+        } catch(...){
+            printf("Exception\n");
+            p.stop_song();
+        }
     }
 
 }
