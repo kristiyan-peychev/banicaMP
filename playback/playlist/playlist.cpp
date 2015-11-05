@@ -88,8 +88,8 @@ void playlist::print_songs()
     for(int i = 0; i < list.size(); i++)
         printf("%d: %s %d\n",i, list[i]->get_info().title.toCString(true), list[i]->get_info().length);
 
-    for(int i = 0; i < queue.size(); i++)
-        printf("%d ", queue[i]);
+    //for(int i = 0; i < queue.size(); i++)
+    //    printf("%d ", queue[i]);
     printf("\n");
 }
 

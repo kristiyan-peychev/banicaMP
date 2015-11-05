@@ -89,7 +89,6 @@ void vector<T>::push_back(const T& a)
 template<typename T>
 T& vector<T>::operator[](size_t i)
 {
-    std::cout << start + i << ' ' << current << '\n' << i << '\n';
     if ((start + i) < current)
         return start[i];
 
