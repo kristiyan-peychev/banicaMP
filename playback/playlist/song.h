@@ -13,7 +13,7 @@
 #include "../../decode/decoder.h"
 #include "../../decode/get.h"
 #include "../../memory/memory.h"
-#include "../play/play.h"
+#include "../audio/audio.h"
 #include "playlist.h"
 #include "encodings.h"
 
