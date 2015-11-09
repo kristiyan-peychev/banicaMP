@@ -27,6 +27,10 @@
 #include "version.h"
 
 #include <fftw3.h> // fast fourier transform
+#include <exception>
+
+#include "../../../decode/decode.h"
+
 #define DFT_BUFFER_SIZE 0x400
 
 #ifdef SND_CHMAP_API_VERSION
@@ -105,8 +109,7 @@ do { \
     if (len > blimit) { \
         blimit = len; \
         if ((buffer = (u_char*) realloc(buffer, blimit)) == NULL) { \
-            error(_("not enough memory"));        \
-            prg_exit(EXIT_FAILURE);  \
+            throw audio::bad_alloc(); \
         } \
     }
 
@@ -116,73 +119,94 @@ enum {
     VUMETER_STEREO
 };
 
+enum {
+    INITFLAG_DEFAULT    = 0x1,
+    INITFLAG_FILENAME   = 0x2,
+    INITFLAG_DECODER    = 0x4,
+    INITFLAG_FILE       = 0x8
+}
+
+/**
+ * class aplay
+ * TODO
+ * throws all exceptions from the audio namespace and may throw at any time
+ */
+
 class aplay {
 public:
-    snd_pcm_sframes_t (*readi_func)(snd_pcm_t *handle, void *buffer, snd_pcm_uframes_t size);
-    snd_pcm_sframes_t (*writei_func)(snd_pcm_t *handle, const void *buffer, snd_pcm_uframes_t size);
-    snd_pcm_sframes_t (*readn_func)(snd_pcm_t *handle, void **bufs, snd_pcm_uframes_t size);
-    snd_pcm_sframes_t (*writen_func)(snd_pcm_t *handle, void **bufs, snd_pcm_uframes_t size);
+    snd_pcm_sframes_t (*readi_func)(snd_pcm_t *handle,
+            void *buffer, snd_pcm_uframes_t size);
+    snd_pcm_sframes_t (*writei_func)(snd_pcm_t *handle,
+            const void *buffer, snd_pcm_uframes_t size);
+    snd_pcm_sframes_t (*readn_func)(snd_pcm_t *handle,
+            void **bufs, snd_pcm_uframes_t size);
+    snd_pcm_sframes_t (*writen_func)(snd_pcm_t *handle,
+            void **bufs, snd_pcm_uframes_t size);
 private:
-    fftw_complex *dft_in;
-    fftw_complex *dft_out;
-    fftw_plan dft_plan;
+    fftw_complex       *dft_in;
+    fftw_complex       *dft_out;
+    fftw_plan           dft_plan;
 private:
-    int paused;
-    char *command;
-    snd_pcm_t *handle;
+    int                 paused;
+    char               *command;
+    snd_pcm_t          *handle;
+
     struct {
-        snd_pcm_format_t format;
-        unsigned int channels;
-        unsigned int rate;
-    } hwparams, rhwparams;
-	int timelimit;
-    int quiet_mode;
-    int file_type;
-    int open_mode;
-    snd_pcm_stream_t stream;
-    int mmap_flag;
-    int interleaved;
-    int nonblock;
-    int in_aborting;
-    u_char *audiobuf;
-    snd_pcm_uframes_t chunk_size;
-    unsigned period_time;
-    unsigned buffer_time;
-    snd_pcm_uframes_t period_frames;
-    snd_pcm_uframes_t buffer_frames;
-    int avail_min;
-    int start_delay;
-    int stop_delay;
-    int monotonic;
-    int can_pause;
-    int fatal_errors;
-    int vumeter;
-    int buffer_pos;
-    size_t bits_per_sample;
-    size_t bits_per_frame;
-    size_t chunk_bytes;
-    int test_position;
-    int test_coef;
-    int test_nowait;
-    snd_output_t *log;
-    long long max_file_size;
-    int max_file_time;
-    int use_strftime;
-    volatile int recycle_capture_file;
-    long term_c_lflag;
-    int dump_hw_params;
-    int fd;
-    off64_t pbrec_count;
-    off64_t fdcount;
-    int vocmajor, vocminor;
-    snd_pcm_chmap_t *channel_map; /* chmap to override */
-    unsigned int *hw_map; /* chmap to follow */
+        snd_pcm_format_t        format;
+        unsigned int            channels;
+        unsigned int            rate;
+    }                   hwparams,
+                        rhwparams;
+
+	int                 timelimit;
+    int                 file_type;
+    int                 open_mode;
+    snd_pcm_stream_t    stream;
+    int                 interleaved;
+    int                 in_aborting;
+    u_char             *audiobuf;
+    snd_pcm_uframes_t   chunk_size;
+    unsigned            period_time;
+    unsigned            buffer_time;
+    snd_pcm_uframes_t   period_frames;
+    snd_pcm_uframes_t   buffer_frames;
+    int                 avail_min;
+    int                 start_delay;
+    int                 stop_delay;
+    int                 monotonic;
+    int                 can_pause;
+    int                 fatal_errors;
+    int                 vumeter;
+    int                 buffer_pos;
+    size_t              bits_per_sample;
+    size_t              bits_per_frame;
+    size_t              chunk_bytes;
+    int                 test_position;
+    int                 test_coef;
+    int                 test_nowait;
+    snd_output_t       *log;
+    int                 use_strftime;
+    int                 dump_hw_params;
+    int                 fd;
+    off64_t             pbrec_count;
+    off64_t             fdcount;
+    int                 vocmajor;
+    int                 vocminor;
+    snd_pcm_chmap_t    *channel_map; /* chmap to override */
+    unsigned int       *hw_map; /* chmap to follow */
+private:
+    decoder            *working_decoder;
+    int                 initflags;
 private:
     void plan_dft(void);
     void apply_filters_dft(void);
+public:
+    aplay(const char *pcm_name = "default");
+    aplay(const aplay&);
 public: // ex-main function, call this after constructed
-    void init(char *filename);
+    void init(const char *filename);
     void init(FILE *file);
+    void init(decoder *);
     void init();
 public:
     void seek(long miliseconds);
@@ -192,8 +216,7 @@ public:
     void show_available_sample_formats(snd_pcm_hw_params_t* params); // will print
 private:
     void prg_exit(int code);
-    ssize_t safe_read(int fd, void *buf, size_t count);
-    size_t test_wavefile_read(int fd, u_char *buffer, size_t *size, size_t reqsize, int line);
+    ssize_t test_wavefile_read(int fd, u_char *buffer, size_t *size, size_t reqsize);
     ssize_t test_wavefile(int fd, u_char *_buffer, size_t size);
     int setup_chmap(void);
     void set_params(void);
@@ -213,3 +236,49 @@ private:
     void playback(char *name);
     void playbackv(char **names, unsigned int count);
 };
+
+namespace audio {
+    class exception : public std::exception {
+    };
+
+    class bad_alloc : public exception {
+    public:
+        const char *what() {
+            return "Allocation failed";
+        }
+    };
+
+    class bad_read : public exception {
+    public:
+        const char *what() {
+            return "Unable to read the song file";
+        }
+    };
+
+    class connection_failed : public exception {
+        const char *what() {
+            return "Connection to the audio output device failed";
+        }
+    };
+
+    class info_retrieve_failed : public exception {
+    public:
+        const char *what() {
+            return "Retrieval of the audio device information failed";
+        }
+    };
+
+    class invalid_wave : public exception {
+    public:
+        const char *what() {
+            return "The wave file supplied was incorrect";
+        }
+    };
+
+    class wave_parse_error : public exception {
+    public:
+        const char *what() {
+            return "Error parsing the wave file";
+        }
+    };
+}

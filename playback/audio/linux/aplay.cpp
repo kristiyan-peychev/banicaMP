@@ -1,9 +1,25 @@
 #include "aplay.h"
 
+static ssize_t safe_read_file(int fd, void *buf, size_t count)
+{
+    ssize_t result = 0, res;
+
+    while (count > 0) {
+        if ((res = read(fd, buf, count)) == 0)
+            break;
+        if (res < 0)
+            return (result > 0 ? result : res);
+        count -= res;
+        result += res;
+        buf = (char *) buf + res;
+    }
+    return result;
+}
+
 void aplay::plan_dft(void)
 {
-    dft_in = (fftw_complex *) fftw_malloc(sizeof(*dft_in) * DFT_BUFFER_SIZE);
-    dft_out = (fftw_complex *) fftw_malloc(sizeof(*dft_out) * DFT_BUFFER_SIZE);
+    dft_in   = (fftw_complex *) fftw_malloc(sizeof(*dft_in) * DFT_BUFFER_SIZE);
+    dft_out  = (fftw_complex *) fftw_malloc(sizeof(*dft_out) * DFT_BUFFER_SIZE);
     dft_plan = fftw_plan_dft_1d(DFT_BUFFER_SIZE, dft_in, dft_out, FFTW_FORWARD, FFTW_ESTIMATE);
 }
 
@@ -13,9 +29,93 @@ void aplay::apply_filters_dft(void)
     for (i = 0; j < /*count*/10; i++)
         /*dft_in[i][0] = (double) ((data[j++] << 8) | data[j++]);*/
         //data[j++] *= 0.6;
+        ;
 
     /* TODO */
     fftw_execute(dft_plan);
+}
+
+aplay::~aplay()
+{
+    snd_pcm_close(handle);
+    handle = NULL;
+    free(audiobuf);
+    snd_output_close(log);
+    snd_config_update_free_global();
+}
+
+aplay::aplay(const char* pcm_name) :
+    writei_func(snd_pcm_writei), readi_func(snd_pcm_readi),
+    writen_func(snd_pcm_writen), readn_func(snd_pcm_readn),
+    paused(0),
+    command("aplay")
+    timelimit(0), // TODO: add a way to customize these
+    file_type(FORMAT_DEFAULT),
+    open_mode(0),
+    stream(SND_PCM_STREAM_PLAYBACK),
+    interleaved(1),
+    in_aborting(0),
+    chunk_size(1024),
+    period_time(0),
+    buffer_time(0),
+    period_frames(0),
+    buffer_frames(0),
+    avail_min(-1),
+    start_delay(0), // TODO: add a way to customize this
+    stop_delay(0),
+    monotonic(0),
+    can_pause(0),
+    fatal_errors(0),
+    vumeter(VUMETER_NONE),
+    buffer_pos(0),
+    test_position(0),
+    test_coef(8),
+    test_nowait(0),
+    file_type(FORMAT_WAVE),
+    working_decoder(NULL)
+{
+    audiobuf = (u_char *) malloc(chunk_size); 
+    if (audiobuf == NULL)
+        throw audio::bad_alloc();
+
+    snd_pcm_info_t *info;
+
+    rhwparams.format = SND_PCM_FORMAT_S16_LE;
+    rhwparams.rate = 44100;
+    rhwparams.channels = 2;
+    hwparams = rhwparams;
+
+    if (snd_output_stdio_attach(&log, stderr, 0) < 0)
+        throw audio::connection_failed();
+
+    if (snd_pcm_open(&handle, pcm_name, stream, open_mode) < 0)
+        throw audio::connection_failed();
+
+    snd_pcm_info_alloca(&info);
+
+    if (snd_pcm_info(handle, info) < 0)
+        throw audio::info_retrieve_failed();
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
+    playback(argv[optind++]); /* WTH? */
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
+}
+
+void aplay::init(const char *filename)
+{
+}
+
+void aplay::init(FILE *file)
+{
+}
+
+void aplay::init(decoder* dec)
+{
+    working_decoder = dec;
+}
+
+void aplay::init()
+{
 }
 
 void aplay::seek(long miliseconds)
@@ -42,31 +142,13 @@ void aplay::prg_exit(int code)
     // TODO
 }
 
-ssize_t aplay::safe_read(int fd, void *buf, size_t count)
-{
-    ssize_t result = 0, res;
-
-    while (count > 0 && !in_aborting) {
-        if ((res = read(fd, buf, count)) == 0)
-            break;
-        if (res < 0)
-            return result > 0 ? result : res;
-        count -= res;
-        result += res;
-        buf = (char *)buf + res;
-    }
-    return result;
-}
-
-size_t aplay::test_wavefile_read(int fd, u_char *buffer, size_t *size, size_t reqsize, int line)
+size_t aplay::test_wavefile_read(int file, u_char *buffer, size_t *size, size_t reqsize)
 {
     if (*size >= reqsize)
         return *size;
-    if ((size_t)safe_read(fd, buffer + *size, reqsize - *size) != reqsize - *size) {
-        error(_("read error (called from line %i)"), line);
-        prg_exit(EXIT_FAILURE);
-    }
-    return *size = reqsize;
+    if ((size_t) m_safe_read(file, buffer + *size, reqsize - *size) != reqsize - *size)
+        throw audio::bad_read();
+    return (*size = reqsize);
 }
 
 /*
@@ -76,7 +158,7 @@ size_t aplay::test_wavefile_read(int fd, u_char *buffer, size_t *size, size_t re
  */
 ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
 {
-    WaveHeader *h = (WaveHeader *)_buffer;
+    WaveHeader *h = (WaveHeader *) _buffer;
     u_char *buffer = NULL;
     size_t blimit = 0;
     WaveFmtBody *f;
@@ -103,7 +185,7 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
     size -= sizeof(WaveHeader);
     while (1) {
         check_wavefile_space(buffer, sizeof(WaveChunkHeader), blimit);
-        test_wavefile_read(fd, buffer, &size, sizeof(WaveChunkHeader), __LINE__);
+        test_wavefile_read(fd, buffer, &size, sizeof(WaveChunkHeader));
         c = (WaveChunkHeader*)buffer;
         type = c->type;
         len = TO_CPU_INT(c->length, big_endian);
@@ -114,44 +196,33 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
         if (type == WAV_FMT)
             break;
         check_wavefile_space(buffer, len, blimit);
-        test_wavefile_read(fd, buffer, &size, len, __LINE__);
+        test_wavefile_read(fd, buffer, &size, len);
         if (size > len)
             memmove(buffer, buffer + len, size - len);
         size -= len;
     }
 
-    if (len < sizeof(WaveFmtBody)) {
-        error(_("unknown length of 'fmt ' chunk (read %u, should be %u at least)"),
-              len, (u_int)sizeof(WaveFmtBody));
-        prg_exit(EXIT_FAILURE);
-    }
+    if (len < sizeof(WaveFmtBody))
+        throw audio::invalid_wave();
+
     check_wavefile_space(buffer, len, blimit);
-    test_wavefile_read(fd, buffer, &size, len, __LINE__);
+    test_wavefile_read(fd, buffer, &size, len);
     f = (WaveFmtBody*) buffer;
     format = TO_CPU_SHORT(f->format, big_endian);
     if (format == WAV_FMT_EXTENSIBLE) {
         WaveFmtExtensibleBody *fe = (WaveFmtExtensibleBody*)buffer;
-        if (len < sizeof(WaveFmtExtensibleBody)) {
-            error(_("unknown length of extensible 'fmt ' chunk (read %u, should be %u at least)"),
-                    len, (u_int)sizeof(WaveFmtExtensibleBody));
-            prg_exit(EXIT_FAILURE);
-        }
-        if (memcmp(fe->guid_tag, WAV_GUID_TAG, 14) != 0) {
-            error(_("wrong format tag in extensible 'fmt ' chunk"));
-            prg_exit(EXIT_FAILURE);
-        }
+        if (len < sizeof(WaveFmtExtensibleBody))
+            throw audio::invalid_wave();
+        if (memcmp(fe->guid_tag, WAV_GUID_TAG, 14) != 0)
+            throw audio::invalid_wave();
         format = TO_CPU_SHORT(fe->guid_format, big_endian);
     }
-    if (format != WAV_FMT_PCM &&
-        format != WAV_FMT_IEEE_FLOAT) {
-                error(_("can't elay WAVE-file format 0x%04x which is not PCM or FLOAT encoded"), format);
-        prg_exit(EXIT_FAILURE);
-    }
+    if (format != WAV_FMT_PCM && format != WAV_FMT_IEEE_FLOAT)
+        throw audio::invalid_wave();
     channels = TO_CPU_SHORT(f->channels, big_endian);
-    if (channels < 1) {
-        error(_("can't play WAVE-files with %d tracks"), channels);
-        prg_exit(EXIT_FAILURE);
-    }
+    if (channels < 1)
+        throw audio::invalid_wave();
+
     hwparams.channels = channels;
     switch (TO_CPU_SHORT(f->bit_p_spl, big_endian)) {
     case 8:
@@ -166,9 +237,9 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
         else
             native_format = SND_PCM_FORMAT_S16_LE;
         if (hwparams.format != DEFAULT_FORMAT &&
-            hwparams.format != native_format)
+                hwparams.format != native_format)
             fprintf(stderr, _("Warning: format is changed to %s\n"),
-                snd_pcm_format_name((snd_pcm_format_t) native_format));
+                    snd_pcm_format_name((snd_pcm_format_t) native_format));
         hwparams.format = (snd_pcm_format_t) native_format;
         break;
     case 24:
@@ -196,11 +267,7 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
             hwparams.format = (snd_pcm_format_t) native_format;
             break;
         default:
-            error(_(" can't play WAVE-files with sample %d bits in %d bytes wide (%d channels)"),
-                  TO_CPU_SHORT(f->bit_p_spl, big_endian),
-                  TO_CPU_SHORT(f->byte_p_spl, big_endian),
-                  hwparams.channels);
-            prg_exit(EXIT_FAILURE);
+            throw audio::invalid_wave();
         }
         break;
     case 32:
@@ -219,9 +286,7 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
         }
         break;
     default:
-        error(_(" can't play WAVE-files with sample %d bits wide"),
-              TO_CPU_SHORT(f->bit_p_spl, big_endian));
-        prg_exit(EXIT_FAILURE);
+        throw audio::invalid_wave();
     }
     hwparams.rate = TO_CPU_INT(f->sample_fq, big_endian);
     
@@ -233,7 +298,7 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
         u_int type, len;
 
         check_wavefile_space(buffer, sizeof(WaveChunkHeader), blimit);
-        test_wavefile_read(fd, buffer, &size, sizeof(WaveChunkHeader), __LINE__);
+        test_wavefile_read(fd, buffer, &size, sizeof(WaveChunkHeader));
         c = (WaveChunkHeader*)buffer;
         type = c->type;
         len = TO_CPU_INT(c->length, big_endian);
@@ -241,7 +306,7 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
             memmove(buffer, buffer + sizeof(WaveChunkHeader), size - sizeof(WaveChunkHeader));
         size -= sizeof(WaveChunkHeader);
         if (type == WAV_DATA) {
-            if (len < pbrec_count && len < 0x7ffffffe)
+            if (len < pbrec_count && len < 0x7ffffffe) // ayy lmao
                 pbrec_count = len;
             if (size > 0)
                 memcpy(_buffer, buffer, size);
@@ -250,7 +315,7 @@ ssize_t aplay::test_wavefile(int fd, u_char *_buffer, size_t size)
         }
         len += len % 2;
         check_wavefile_space(buffer, len, blimit);
-        test_wavefile_read(fd, buffer, &size, len, __LINE__);
+        test_wavefile_read(fd, buffer, &size, len);
         if (size > len)
             memmove(buffer, buffer + len, size - len);
         size -= len;
@@ -653,14 +718,7 @@ void aplay::set_params(void)
         snd_pcm_hw_params_dump(params, log);
         fprintf(stderr, "--------------------\n");
     }
-    if (mmap_flag) {
-        snd_pcm_access_mask_t *mask = (snd_pcm_access_mask_t *)alloca(snd_pcm_access_mask_sizeof());
-        snd_pcm_access_mask_none(mask);
-        snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-        snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-        snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-        err = snd_pcm_hw_params_set_access_mask(handle, params, mask);
-    } else if (interleaved)
+    if (interleaved)
         err = snd_pcm_hw_params_set_access(handle, params,
                            SND_PCM_ACCESS_RW_INTERLEAVED);
     else
@@ -689,20 +747,6 @@ void aplay::set_params(void)
     rate = hwparams.rate;
     err = snd_pcm_hw_params_set_rate_near(handle, params, &hwparams.rate, 0);
     assert(err >= 0);
-    if ((float)rate * 1.05 < hwparams.rate || (float)rate * 0.95 > hwparams.rate) {
-        if (!quiet_mode) {
-            char plugex[64];
-            const char *pcmname = snd_pcm_name(handle);
-            fprintf(stderr, _("Warning: rate is not accurate (requested = %iHz, got = %iHz)\n"), rate, hwparams.rate);
-            if (! pcmname || strchr(snd_pcm_name(handle), ':'))
-                *plugex = 0;
-            else
-                snprintf(plugex, sizeof(plugex), "(-Dplug:%s)",
-                     snd_pcm_name(handle));
-            fprintf(stderr, _("         please, try the plug plugin %s\n"),
-                plugex);
-        }
-    }
     rate = hwparams.rate;
     if (buffer_time == 0 && buffer_frames == 0) {
         err = snd_pcm_hw_params_get_buffer_time_max(params,
@@ -799,21 +843,6 @@ void aplay::set_params(void)
     }
 
     /* show mmap buffer arragment */
-    if (mmap_flag) {
-        const snd_pcm_channel_area_t *areas;
-        snd_pcm_uframes_t offset, size = chunk_size;
-        int i;
-        err = snd_pcm_mmap_begin(handle, &areas, &offset, &size);
-        if (err < 0) {
-            error(_("snd_pcm_mmap_begin problem: %s"), snd_strerror(err));
-            prg_exit(EXIT_FAILURE);
-        }
-        for (i = 0; i < (signed) hwparams.channels; i++)
-            fprintf(stderr, "mmap_area[%i] = %p,%u,%u (%u)\n", i, areas[i].addr, areas[i].first, areas[i].step, snd_pcm_format_physical_width(hwparams.format));
-        /* not required, but for sure */
-        snd_pcm_mmap_commit(handle, offset, 0);
-    }
-
     buffer_frames = buffer_size;    /* for position test */
 }
 
@@ -825,7 +854,7 @@ void aplay::playback_go(int fd, size_t loaded, off64_t count, int rtype, char *n
 
     set_params();
 
-    while (loaded > chunk_bytes && written < count && !in_aborting) {
+    while (loaded > chunk_bytes && written < count) {
         //if (filters_avail)
             //do_apply_filters(audiobuf + written, chunk_size);
 
@@ -847,11 +876,9 @@ void aplay::playback_go(int fd, size_t loaded, off64_t count, int rtype, char *n
 
             if (c == 0)
                 break;
-            r = safe_read(fd, audiobuf + l, c);
-            if (r < 0) {
-                perror(name);
-                prg_exit(EXIT_FAILURE);
-            }
+            r = m_safe_read(fd, audiobuf + l, c);
+            if (r < 0)
+                throw audio::bad_read();
             fdcount += r;
             if (r == 0)
                 break;
@@ -867,7 +894,7 @@ void aplay::playback_go(int fd, size_t loaded, off64_t count, int rtype, char *n
     }
     snd_pcm_nonblock(handle, 0);
     snd_pcm_drain(handle);
-    snd_pcm_nonblock(handle, nonblock);
+    snd_pcm_nonblock(handle, 0);
 }
 
 void aplay::playback(char *filename)
@@ -900,7 +927,7 @@ void aplay::playbackv(char **names, unsigned int count)
     unsigned int channel;
     unsigned int channels = rhwparams.channels;
     int alloced = 0;
-    int fds[channels];
+    int *fds = (int *) malloc(channels * sizeof(*fds));
     for (channel = 0; channel < channels; ++channel)
         fds[channel] = -1;
 
@@ -935,6 +962,7 @@ void aplay::playbackv(char **names, unsigned int count)
         if (alloced)
             free(names[channel]);
     }
+    free(fds);
     if (alloced)
         free(names);
     if (ret)
