@@ -42,10 +42,10 @@ test/[^.]*
 # all build subdirectories
 build/*
 playback/build/*
-playback/play/build/*
-playback/play/linux/play.h
-playback/play/linux/build/*
-playback/play/windows/build/*
+playback/audio/build/*
+playback/audio/linux/play.h
+playback/audio/linux/build/*
+playback/audio/windows/build/*
 playback/playlist/build/*
 decode/build/*
 memory/build/*
