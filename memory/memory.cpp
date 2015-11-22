@@ -84,11 +84,11 @@ void memory_ref::write(const char *data, size_t write_size) noexcept(false)
     if (cap() == 0)
         throw memory::null_allocation();
     if ((mem->current_position + write_size) >= end())
-        throw memory::out_of_range();
-
-    if ((mem->current_position = (char *)
-            memmove(mem->current_position, data, write_size)) == NULL)
         throw memory::write_failed();
+
+    if (memmove(mem->current_position, data, write_size) == NULL)
+        throw memory::write_failed();
+    mem->current_position = mem->current_position + write_size;
 }
 
 const char *memory_ref::read(size_t index, size_t num_bytes) noexcept(false)
@@ -107,10 +107,8 @@ const char *memory_ref::read(size_t index, size_t num_bytes) noexcept(false)
 void memory_ref::expand(size_t add) noexcept(false)
 {
     is_valid_throw();
-    if (cap() == 0 || add == 0)
+    if (cap() == 0 || add <= 0)
         throw memory::null_allocation();
-    if (add > (cap() - 1))
-        throw memory::out_of_range();
  
     char *tmp = new char [mem->size + add];
     if (memcpy(tmp, mem->start, mem->size) == NULL)
