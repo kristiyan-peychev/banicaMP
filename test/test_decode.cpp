@@ -4,14 +4,21 @@
 #include <cstdlib>
 
 int main(int argc, const char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: `%s <song path>`\n", *argv);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: `%s <input song path> <output song path>`\n", *argv);
         exit(1);
     }
-	FILE *f = fopen(argv[1], "r");
-	FILE *f = fopen(fi, "r");
-	decoder *what = get_decoder(f, ENC_MP3);
-	FILE *ofile = fopen(Ofile, "w+");
-	what->decode(ofile);
-return 0;
+    FILE *f = fopen(argv[1], "r");
+    if (f == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+    decoder *what = get_decoder(f, ENC_MP3);
+    FILE *ofile = fopen(argv[2], "w+");
+    if (f == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+    what->decode(ofile);
+    return 0;
 }
