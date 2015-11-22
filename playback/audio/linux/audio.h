@@ -2,13 +2,13 @@
 
 #define PLAY_J01D18YC
 
-#include "../play.h"
+#include "../audio.h"
 
 #include <unistd.h>
 #include <cstdio>
 
 #define NAME_SIZE 256
-#define pwd "/home/kawaguchi/banicaMP/build/playback/audio/build/linux/build"
+#define pwd "/home/kawaguchi/banicaMP/playback/audio/linux/build"
 
 enum {
     FLG_FILE = 1,
@@ -26,7 +26,7 @@ private:
     bool flg;
 public:
 	explicit alsa_wav_player(FILE *);
-    explicit alsa_wav_player(memory *);
+    explicit alsa_wav_player(memory_ref &);
 	explicit alsa_wav_player(int);
 	~alsa_wav_player(void);
 public:
