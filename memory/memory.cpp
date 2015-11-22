@@ -38,7 +38,7 @@ memory_ref::memory_ref(memory_ref &ref)
     ++mem->refs;
 }
 
-memory_ref &operator=(memory_ref &ref)
+memory_ref &memory_ref::operator=(memory_ref &ref)
 {
     if (mem != NULL && ref.mem != NULL)
     {

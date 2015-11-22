@@ -38,30 +38,31 @@ public:
 };
 
 namespace memory {
-    class broken_ref : public std::exception {
+    class exception : public std::exception { };
+    class broken_ref : public memory::exception {
         const char *what(void) noexcept {
             return "Reference count of given memory was nonpositive";
         }
     };
 
-    class out_of_range : public std::exception {
+    class out_of_range : public memory::exception {
         const char *what(void) noexcept {
             return "Index is out of range";
         }
     };
 
-    class null_allocation : public std::exception {
+    class null_allocation : public memory::exception {
         const char *what(void) noexcept {
             return "The memory object holds an allocation of length zero";
         }
     };
 
-    class expand_failed : public std::exception {
+    class expand_failed : public memory::exception {
         const char *what(void) noexcept {
             return "Memory expansion failed";
         }
     };
-    class write_failed : public std::exception {
+    class write_failed : public memory::exception {
         const char *what(void) noexcept {
             return "Memory write failed";
         }
