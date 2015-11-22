@@ -38,6 +38,17 @@ memory_ref::memory_ref(memory_ref &ref)
     ++mem->refs;
 }
 
+memory_ref &operator=(memory_ref &ref)
+{
+    if (mem != NULL && ref.mem != NULL)
+    {
+        if (--mem->refs == 0)
+            delete[] mem;
+        mem = ref.mem;
+        ++mem->refs;
+    }
+}
+
 char *memory_ref::begin(void) noexcept
 {
     is_valid_throw();
