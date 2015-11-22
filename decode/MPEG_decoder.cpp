@@ -64,39 +64,40 @@ static enum mad_flow mem_output(void *data,
         struct mad_pcm *pcm)
 {
     signed int sample;
-    unsigned nchannels, nsamples, ss;
+    unsigned int nchannels, nsamples;
     const mad_fixed_t *left_ch, *right_ch;
-    uberbuff *buf = static_cast<uberbuff *>(data);
+    uberbuff *context = static_cast<uberbuff *>(data);
 
     nchannels = pcm->channels;
     nsamples = pcm->length;
-    ss = nsamples * (nchannels << 1);
     left_ch = pcm->samples[0];
     right_ch = pcm->samples[1];
 
-    //if (buf->mem->cap() < (((size_t) buf->p - (size_t) buf->mem->begin()) + ss))
-        //buf->mem->expand(buf->mem->cap());
+    do {
+        try {
+            signed char tmp[4];
+            while (nsamples--) {
+                /* output sample(s) in 16-bit signed little-endian PCM */
+                sample = scale(*left_ch++);
+                tmp[0] = (sample >> 0) & 0xff;
+                tmp[1] = (sample >> 8) & 0xff;
+                // two-channel?
+                sample = scale(*right_ch++);
+                tmp[2] = (sample >> 0) & 0xff;
+                tmp[3] = (sample >> 8) & 0xff;
 
-    //signed char *to_write = (signed char *) malloc(nsamples * (nchannels << 1));
-    //signed char *tmp = to_write;
-    signed char *tmp = (signed char *) buf->p;
-    while (nsamples--) {
-        /* output sample(s) in 16-bit signed little-endian PCM */
-        sample = scale(*left_ch++);
-        tmp[0] = (sample >> 0) & 0xff;
-        tmp[1] = (sample >> 8) & 0xff;
-        sample = scale(*right_ch++);
-        // two-channel?
-        tmp[2] = (sample >> 0) & 0xff;
-        tmp[3] = (sample >> 8) & 0xff;
-
-        //memcpy(tmp, ostr, sizeof(ostr));
-        //tmp += sizeof(ostr);
-        tmp += 4;
-    }
-
-    //memcpy(buf->p, to_write, ss);
-    buf->p = (void *) ((size_t) buf->p + ss);
+                context->out_mem.write((const char *) tmp, 4);
+            }
+            break;
+        } catch (memory::write_failed &write_exept) {
+            context->out_mem.expand(context->out_mem.cap() * 2);
+        } catch (memory::out_of_range &range_except) {
+            context->out_mem.expand(context->out_mem.cap() * 2);
+        } catch (...) {
+            fprintf(stderr, "ERROR: FATAL EXCEPTION THROWN\n");
+            return MAD_FLOW_STOP;
+        }
+    } while (1);
 
     return MAD_FLOW_CONTINUE;
 }
@@ -108,7 +109,7 @@ static enum mad_flow file_output(void *data,
     signed int sample;
     unsigned nchannels, nsamples, ss;
     const mad_fixed_t *left_ch, *right_ch;
-    uberbuff *buf = static_cast<uberbuff *>(data);
+    uberbuff *context = static_cast<uberbuff *>(data);
 
     nchannels = pcm->channels;
     nsamples = pcm->length;
@@ -116,33 +117,23 @@ static enum mad_flow file_output(void *data,
     left_ch = pcm->samples[0];
     right_ch = pcm->samples[1];
 
-    signed char *to_write = (signed char *) malloc(nsamples * (nchannels << 1));
+    signed char *to_write =
+            (signed char *) malloc(nsamples * (nchannels << 1));
     signed char *tmp = to_write;
     while (nsamples--) {
-
         /* output sample(s) in 16-bit signed little-endian PCM */
-
         sample = scale(*left_ch++);
         tmp[0] = (sample >> 0) & 0xff;
         tmp[1] = (sample >> 8) & 0xff;
-        sample = scale(*right_ch++);
         // We will likely use a two-channel audio >_>
+        sample = scale(*right_ch++);
         tmp[2] = (sample >> 0) & 0xff;
         tmp[3] = (sample >> 8) & 0xff;
 
-        //if (nchannels == 2) {
-            //sample = scale(*right_ch++);
-            //ostr[2] = (sample >> 0) & 0xff;
-            //ostr[3] = (sample >> 8) & 0xff;
-            //putc((sample >> 0) & 0xff, buf->f);
-            //putc((sample >> 8) & 0xff, buf->f);
-        //}
-        //fwrite((const void *) ostr, 1, 4, buf->f);
-        //memcpy(tmp, ostr, sizeof(ostr));
         tmp += 4;
     }
 
-    fwrite(to_write, sizeof(*to_write), ss * (nchannels << 1), buf->f);
+    fwrite(to_write, sizeof(*to_write), ss * (nchannels << 1), context->f);
     free(to_write);
 
     return MAD_FLOW_CONTINUE;
@@ -152,14 +143,14 @@ bool MPEG_decoder::decode(FILE *lol)
 {
     buffer buf;
     struct mad_decoder dec;
-    uberbuff pro_buff(&buf, lol, file, NULL);
+    memory_ref empty_mem(0);
+    uberbuff context(&buf, lol, file, empty_mem);
     int result;
 
-    //buf.start = new unsigned char [BUFF_SIZE];
     buf.start = (unsigned char *) malloc(BUFF_SIZE * sizeof(*buf.start)); 
     buf.length = BUFF_SIZE;
 
-    mad_decoder_init(&dec, &pro_buff, input, 0, 0, 
+    mad_decoder_init(&dec, &context, input, 0, 0, 
             file_output, error, 0);
 
     result = mad_decoder_run(&dec, MAD_DECODER_MODE_SYNC);
@@ -171,18 +162,20 @@ bool MPEG_decoder::decode(FILE *lol)
     return static_cast<bool>(!!result);
 }
 
-bool MPEG_decoder::decode(memory *m)
+bool MPEG_decoder::decode(memory_ref &m)
 {
-    buffer buf;
     struct mad_decoder dec;
-    uberbuff pro_buff(&buf, NULL, file, m);
+    buffer buf;
+    uberbuff context(&buf, NULL, file, m);
     int result;
 
-    //buf.start = new unsigned char [BUFF_SIZE];
     buf.start = (unsigned char *) malloc(BUFF_SIZE * sizeof(*buf.start)); 
     buf.length = BUFF_SIZE;
 
-    mad_decoder_init(&dec, &pro_buff, input, 0, 0, 
+    if (buf.start == NULL)
+        throw decode::exception();
+
+    mad_decoder_init(&dec, &context, input, 0, 0, 
             mem_output, error, 0);
 
     result = mad_decoder_run(&dec, MAD_DECODER_MODE_SYNC);

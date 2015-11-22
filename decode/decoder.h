@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <exception>
 
 #if defined(linux)
 #define _LINUX
@@ -17,9 +18,14 @@ class decoder {
 public:
 	decoder() { }
 	virtual ~decoder(void) { }
-	virtual bool decode(FILE *) = 0; // outfile
-    virtual bool decode(memory *) = 0;
+	virtual bool decode(FILE *output) = 0;
+    virtual bool decode(memory_ref &output) = 0;
 };
+
+namespace decode {
+    class exception : public std::exception {
+    };
+}
 
 #include "FLAC_decoder.h"
 #include "MPEG_decoder.h"

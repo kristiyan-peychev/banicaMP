@@ -7,31 +7,34 @@
 
 class flac_decoder final : public decoder, public FLAC::Decoder::File {
 public:
-	flac_decoder(FILE *);
-	~flac_decoder(void);
-	bool decode(FILE *);
-    bool decode(memory *);
-private:
-	::FLAC__StreamDecoderWriteStatus write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
-	::FLAC__StreamDecoderWriteStatus mem_write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
-	::FLAC__StreamDecoderWriteStatus file_write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
-	void metadata_callback(const ::FLAC__StreamMetadata *);
-	void error_callback(::FLAC__StreamDecoderErrorStatus);
+    ~flac_decoder(void);
+    flac_decoder(FILE *);
 public:
-	flac_decoder(const flac_decoder &) = delete;
-	flac_decoder &operator=(const flac_decoder &) = delete;
+    bool decode(FILE *);
+    bool decode(memory_ref &);
 private:
-	FILE *file; // input file
-
+    ::FLAC__StreamDecoderWriteStatus write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
+    ::FLAC__StreamDecoderWriteStatus mem_write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
+    ::FLAC__StreamDecoderWriteStatus file_write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
+    void metadata_callback(const ::FLAC__StreamMetadata *);
+    void error_callback(::FLAC__StreamDecoderErrorStatus);
+public:
+    flac_decoder(const flac_decoder &)              = delete;
+    flac_decoder &operator=(const flac_decoder &)   = delete;
+private:
+    FILE *file; // input file
+private:
     bool memflg;
-	FILE *f; // outfile
-    memory *out;
+    FILE *f; // outfile
+    memory_ref out_mem; // outmem
     void *p;
-
-	FLAC__uint64 total_samples;
-	unsigned sample_rate;
-	unsigned channels;
-	unsigned bps;
+private:
+    FLAC__uint64 total_samples;
+    unsigned sample_rate;
+    unsigned channels;
+    unsigned bps;
+private:
+    ::FLAC__StreamDecoderWriteStatus (flac_decoder::*m_write_callback)(const ::FLAC__Frame *, const FLAC__int32 * const []);
 };
 
 #endif /* end of include guard: FLAC_DECODER_PEOMBWH */
