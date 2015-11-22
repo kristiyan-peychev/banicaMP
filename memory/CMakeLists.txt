@@ -6,8 +6,7 @@ else()
     message(NOSSET)
 endif()
 project (mem)
-# TODO check for windows
-set (MEM_SRC memory_linux.cpp)
+set (MEM_SRC memory.cpp)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
 add_library (mem SHARED ${MEM_SRC})
