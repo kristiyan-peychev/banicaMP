@@ -11,57 +11,115 @@
 #include <new>
 #include <algorithm>
 
-memory::~memory(void)
+memory_ref::~memory_ref(void)
 {
-    if (start)
-        delete[] start;
+    --mem->refs;
+    if ((mem->refs <= 0) && mem->start) {
+        delete[] mem->start;
+        delete[] mem;
+    }
 }
 
-memory::memory(size_t size) noexcept(false) : size(size),
-    start(NULL),
-    ending(NULL)
+memory_ref::memory_ref(size_t size) noexcept(false)
 {
-    start = new char [size];
-    ending = start + size;
+    mem = new memory_core;
+    mem->refs               = 1;
+    mem->size               = size;
+    mem->start              = new char [size];
+    mem->current_position   = mem->start;
+    mem->ending             = mem->start + size;
 }
 
-void *memory::begin(void) noexcept
+memory_ref::memory_ref(memory_ref &ref)
 {
-    return start;
+    if (ref.mem == NULL || ref.mem->refs <= 0)
+        throw memory::broken_ref();
+    mem = ref.mem;
+    ++mem->refs;
 }
 
-void *const memory::end(void) const noexcept
+char *memory_ref::begin(void) noexcept
 {
-    return ending;
+    is_valid_throw();
+    return mem->start;
 }
 
-size_t memory::cap(void) const noexcept
+char *const memory_ref::end(void) const noexcept
 {
-    return size;
+    is_valid_throw();
+    return mem->ending;
 }
 
-char memory::operator[](size_t index) noexcept(false)
+size_t memory_ref::cap(void) const noexcept
 {
+    is_valid_throw();
+    return mem->size;
+}
+
+char memory_ref::operator[](size_t index) noexcept(false)
+{
+    is_valid_throw();
     if (cap() == 0)
         throw memory::null_allocation();
     if (index > (cap() - 1))
         throw memory::out_of_range();
 
-    return *(start + index);
+    return *(mem->start + index);
 }
 
-void memory::expand(size_t add) noexcept(false)
+void memory_ref::write(const char *data, size_t write_size) noexcept(false)
 {
+    is_valid_throw();
     if (cap() == 0)
         throw memory::null_allocation();
+    if ((mem->current_position + write_size) >= end())
+        throw memory::out_of_range();
+
+    if ((mem->current_position = (char *)
+            memmove(mem->current_position, data, write_size)) == NULL)
+        throw memory::write_failed();
+}
+
+const char *memory_ref::read(size_t index, size_t num_bytes) noexcept(false)
+{
+    is_valid_throw();
+    if (cap() == 0)
+        throw memory::null_allocation();
+    if ((index + num_bytes) > (cap() - 1))
+        throw memory::out_of_range();
     if (index > (cap() - 1))
+        throw memory::out_of_range();
+    // operator[] will check for null-allocation and if index is out of range
+    return (mem->start + index);
+}
+
+void memory_ref::expand(size_t add) noexcept(false)
+{
+    is_valid_throw();
+    if (cap() == 0 || add == 0)
+        throw memory::null_allocation();
+    if (add > (cap() - 1))
         throw memory::out_of_range();
  
-    char *tmp = new char [size * 2];
-    if (memcpy(tmp, start, size) == NULL)
+    char *tmp = new char [mem->size + add];
+    if (memcpy(tmp, mem->start, mem->size) == NULL)
         throw memory::expand_failed();
-    std::swap(tmp, start);
-    size = size * 2;
-    ending = start + size;
+
+    size_t curpos_offset = mem->current_position - mem->start;
+    std::swap(tmp, mem->start);
+    mem->current_position = mem->start + curpos_offset;
+    mem->size += add;
+    mem->ending = mem->start + mem->size;
+}
+
+bool memory_ref::is_valid() const noexcept
+{
+    return (mem != NULL);
+}
+
+void memory_ref::is_valid_throw() const noexcept(false)
+{
+    if (!is_valid())
+        throw memory::broken_ref();
 }
 

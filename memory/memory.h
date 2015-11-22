@@ -4,31 +4,50 @@
 
 #include <cstdlib>
 #include <exception>
+#include <stdexcept>
 
-class memory {
-    size_t   size;
-    void    *start;
-    void    *ending;
+class memory_ref {
+    struct memory_core {
+        int      refs;
+        size_t   size;
+        char    *start;
+        char    *current_position;
+        char    *ending;
+    } *mem;
 public:
-    memory(void)                        = delete;
-    memory(const memory &)              = delete;
-    memory &operator=(const memory &)   = delete;
+    memory_ref(void)                            = delete;
 public:
-    ~memory(void);
-    memory(size_t) noexcept(false);
+    ~memory_ref(void);
+    memory_ref(memory_ref &);
+    memory_ref &operator=(memory_ref &);
+    memory_ref(size_t) noexcept(false);
 public:
     // Change names?
-    void       *begin(void) noexcept;
-    void       *const end(void) const noexcept;
+    char       *begin(void) noexcept;
+    char       *const end(void) const noexcept;
     size_t      cap(void) const noexcept; // capacity
 public:
     char        operator[](size_t) noexcept(false);
+    void        write(const char *, size_t) noexcept(false);
+    const char *read(size_t index, size_t num_bytes) noexcept(false);
 public:
     void expand(size_t) noexcept(false);
+public:
+    bool is_valid() const noexcept;
+    void is_valid_throw() const noexcept(false);
 };
 
 namespace memory {
-    class out_of_range : public std::out_of_range {
+    class broken_ref : public std::exception {
+        const char *what(void) noexcept {
+            return "Reference count of given memory was nonpositive";
+        }
+    };
+
+    class out_of_range : public std::exception {
+        const char *what(void) noexcept {
+            return "Index is out of range";
+        }
     };
 
     class null_allocation : public std::exception {
@@ -40,6 +59,11 @@ namespace memory {
     class expand_failed : public std::exception {
         const char *what(void) noexcept {
             return "Memory expansion failed";
+        }
+    };
+    class write_failed : public std::exception {
+        const char *what(void) noexcept {
+            return "Memory write failed";
         }
     };
 }
