@@ -29,7 +29,7 @@
 #include <fftw3.h> // fast fourier transform
 #include <exception>
 
-#include "../../../decode/decode.h"
+#include "../../../decode/decoder.h"
 
 #define DFT_BUFFER_SIZE 0x400
 
@@ -124,7 +124,7 @@ enum {
     INITFLAG_FILENAME   = 0x2,
     INITFLAG_DECODER    = 0x4,
     INITFLAG_FILE       = 0x8
-}
+};
 
 /**
  * class aplay
@@ -156,9 +156,9 @@ private:
         unsigned int            channels;
         unsigned int            rate;
     }                   hwparams,
-                        rhwparams;
+        rhwparams;
 
-	int                 timelimit;
+    int                 timelimit;
     int                 file_type;
     int                 open_mode;
     snd_pcm_stream_t    stream;
