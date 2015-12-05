@@ -30,6 +30,7 @@ public:
     char        operator[](size_t) noexcept(false);
     void        write(const char *, size_t) noexcept(false);
     const char *read(size_t index, size_t num_bytes) noexcept(false);
+    char       *read(size_t num_bytes) noexcept(false);
 public:
     void expand(size_t) noexcept(false);
 public:
