@@ -8,4 +8,4 @@ add_subdirectory(config config/build)
 add_subdirectory(decode decode/build)
 add_subdirectory(memory memory/build)
 
-add_subdirectory(playback)
+add_subdirectory(playback playback)
