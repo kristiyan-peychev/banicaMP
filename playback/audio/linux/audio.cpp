@@ -1,5 +1,5 @@
 #include "audio.h"
-#include "aplay.h"
+//#include "aplay.h"
 
 #include <signal.h>
 #include <fcntl.h>
@@ -125,7 +125,7 @@ void alsa_wav_player::seek(int random_number_l3l)
 
 void alsa_wav_player::begin_mem(void)
 {
-    aplay player;
+    //aplay player;
 }
 
 void alsa_wav_player::begin_file(void)

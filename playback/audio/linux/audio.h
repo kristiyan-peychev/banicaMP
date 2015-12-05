@@ -17,29 +17,31 @@ enum {
 
 class alsa_wav_player : public play_wav {
 private:
-	bool is_paused;
-	pid_t childpid;
+    bool is_paused;
+    pid_t childpid;
     int child_pipe;
-
-	int filedsc;
-    //memory *mem;
+    int input_fd;
+    memory_ref input_mem;
     bool flg;
 public:
-	explicit alsa_wav_player(FILE *);
-    explicit alsa_wav_player(memory_ref &);
-	explicit alsa_wav_player(int);
-	~alsa_wav_player(void);
+    ~alsa_wav_player(void);
+    explicit alsa_wav_player(FILE *input);
+    explicit alsa_wav_player(memory_ref &input);
+    explicit alsa_wav_player(int input_fd);
 public:
-	alsa_wav_player(void) = delete;
-	alsa_wav_player(const alsa_wav_player &) = delete;
-	alsa_wav_player &operator=(const alsa_wav_player &) = delete;
+    alsa_wav_player(void)                               = delete;
+    alsa_wav_player(const alsa_wav_player &)            = delete;
+    alsa_wav_player &operator=(const alsa_wav_player &) = delete;
 public:
-	void begin(void);
-	void play(void);
-    void pause(void);
-	void toggle_pause(void);
-	void stop(void);
-    void seek(int);
+    void begin(void); // start actual playback
+    void play(void); // resume after pause or stop
+    void pause(void); // pause the playback
+    void toggle_pause(void); // toggle pause and unpause
+    void stop(void); // stop playback
+    void seek(int miliseconds); // seek through the song
+private:
+    void begin_mem (void);
+    void begin_file(void);
 };
 
 #endif /* end of include guard: PLAY_J01D18YC */
