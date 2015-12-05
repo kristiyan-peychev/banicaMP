@@ -26,11 +26,11 @@
 #include "formats.h"
 #include "version.h"
 
-#include <fftw3.h> // fast fourier transform
+//#include <fftw3.h> // fast fourier transform
 #include <exception>
 #include <functional>
 
-#include "../../../../memory/memory.h"
+#include "../../../memory/memory.h"
 
 #define DFT_BUFFER_SIZE 0x400
 
@@ -72,15 +72,6 @@
     putc('\n', stderr); \
 } while (0)
 #endif
-
-#define check_wavefile_space(buffer, len, blimit) \
-    if (len > blimit) { \
-        blimit = len; \
-        if ((buffer = realloc(buffer, blimit)) == NULL) { \
-            error(_("not enough memory"));        \
-            prg_exit(EXIT_FAILURE);  \
-        } \
-    }
 
 #ifndef timersub
 #define timersub(a, b, result) \
@@ -143,9 +134,9 @@ public:
     snd_pcm_sframes_t (*writen_func)(snd_pcm_t *handle,
             void **bufs, snd_pcm_uframes_t size);
 private:
-    fftw_complex       *dft_in;
-    fftw_complex       *dft_out;
-    fftw_plan           dft_plan;
+    //fftw_complex       *dft_in;
+    //fftw_complex       *dft_out;
+    //fftw_plan           dft_plan;
 private:
     int                 paused;
     char               *command;
@@ -204,7 +195,7 @@ private:
 public:
     ~aplay(void);
     aplay(const char *pcm_name = "default");
-    aplay(const aplay&);
+    //aplay(const aplay&);
 public: // ex-main function, call this after constructed
     void init(const char *filename);
     void init(FILE *file);
@@ -234,7 +225,7 @@ private:
     void init_raw_data(void) { hwparams = rhwparams; }
     off64_t calc_count(void);
 
-    void playback_go(int fd, size_t loaded, off64_t count, int rtype);
+    void playback_go(size_t loaded, off64_t count);
     void playback();
 };
 
