@@ -28,8 +28,9 @@
 
 #include <fftw3.h> // fast fourier transform
 #include <exception>
+#include <functional>
 
-#include "../../../decode/decoder.h"
+#include "../../../../memory/memory.h"
 
 #define DFT_BUFFER_SIZE 0x400
 
@@ -122,8 +123,7 @@ enum {
 enum {
     INITFLAG_DEFAULT    = 0x1,
     INITFLAG_FILENAME   = 0x2,
-    INITFLAG_DECODER    = 0x4,
-    INITFLAG_FILE       = 0x8
+    INITFLAG_FILE       = 0x4
 };
 
 /**
@@ -195,18 +195,20 @@ private:
     snd_pcm_chmap_t    *channel_map; /* chmap to override */
     unsigned int       *hw_map; /* chmap to follow */
 private:
-    decoder            *working_decoder;
-    int                 initflags;
+    std::function<size_t(void*, void *, size_t)> m_safe_read;
+    memory_ref          sound_memory;
+    FILE               *sound_file;
 private:
     void plan_dft(void);
     void apply_filters_dft(void);
 public:
+    ~aplay(void);
     aplay(const char *pcm_name = "default");
     aplay(const aplay&);
 public: // ex-main function, call this after constructed
     void init(const char *filename);
     void init(FILE *file);
-    void init(decoder *);
+    void init(memory_ref &);
     void init();
 public:
     void seek(long miliseconds);
@@ -232,9 +234,8 @@ private:
     void init_raw_data(void) { hwparams = rhwparams; }
     off64_t calc_count(void);
 
-    void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *name);
-    void playback(char *name);
-    void playbackv(char **names, unsigned int count);
+    void playback_go(int fd, size_t loaded, off64_t count, int rtype);
+    void playback();
 };
 
 namespace audio {
@@ -279,6 +280,61 @@ namespace audio {
     public:
         const char *what() {
             return "Error parsing the wave file";
+        }
+    };
+    class broken_pcm_confg : public exception {
+    public:
+        const char *what() {
+            return "Broken configuration for this PCM: no configurations available";
+        }
+    };
+
+    class access_type_not_available : public exception {
+    public:
+        const char *what() {
+            return "PCM: Access type not available";
+        }
+    };
+
+    class sample_format_not_available : public exception {
+    public:
+        const char *what() {
+            return "PCM: Sample format not available";
+        }
+    };
+
+    class channel_count_not_available : public exception {
+    public:
+        const char *what() {
+            return "PCM: Channel count not available";
+        }
+    };
+
+    class unable_to_install_hw_params : public exception {
+    public:
+        const char *what() {
+            return "PCM: Could not install hw params";
+        }
+    };
+
+    class unable_to_install_sw_params : public exception {
+    public:
+        const char *what() {
+            return "PCM: Could not install sw params";
+        }
+    };
+
+    class invalid_period : public exception {
+    public:
+        const char *what() {
+            return "Can't use period equal to buffer size";
+        }
+    };
+
+    class chmap_setup_failed : public exception {
+    public:
+        const char *what() {
+            return "Could not setup chmap";
         }
     };
 }
