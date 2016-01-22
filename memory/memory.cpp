@@ -109,7 +109,7 @@ char *memory_ref::read(size_t num_bytes) noexcept(false)
     is_valid_throw();
     if (cap() == 0)
         throw memory::null_allocation();
-    if ((((size_t) mem->current_position) + num_bytes) > (cap() - 1))
+    if ((((size_t) (mem->current_position - mem->start)) + num_bytes) > (cap() - 1))
         throw memory::out_of_range();
     
     char *ret = mem->current_position + num_bytes;
