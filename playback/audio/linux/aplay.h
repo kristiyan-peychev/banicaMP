@@ -139,7 +139,7 @@ private:
     //fftw_plan           dft_plan;
 private:
     int                 paused;
-    char               *command;
+    const char         *command;
     snd_pcm_t          *handle;
 
     struct {
@@ -178,7 +178,6 @@ private:
     snd_output_t       *log;
     int                 use_strftime;
     int                 dump_hw_params;
-    int                 fd;
     off64_t             pbrec_count;
     off64_t             fdcount;
     int                 vocmajor;
@@ -209,8 +208,6 @@ public:
     void show_available_sample_formats(snd_pcm_hw_params_t* params); // will print
 private:
     void prg_exit(int code);
-    ssize_t test_wavefile_read(int fd, u_char *buffer, size_t *size, size_t reqsize);
-    ssize_t test_wavefile(int fd, u_char *_buffer, size_t size);
     int setup_chmap(void);
     void set_params(void);
     void xrun(void); // I/O error handler
@@ -225,7 +222,9 @@ private:
     void init_raw_data(void) { hwparams = rhwparams; }
     off64_t calc_count(void);
 
+    ssize_t test_wavefile(u_char *buffer, size_t);
     void playback_go(size_t loaded, off64_t count);
+public:
     void playback();
 };
 

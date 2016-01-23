@@ -710,8 +710,6 @@ static ssize_t test_wavefile(int fd, u_char *_buffer, size_t size)
         big_endian = 0;
     else if (h->magic == WAV_RIFX)
         big_endian = 1;
-    else
-        return -1;
     if (h->type != WAV_WAVE)
         return -1;
 
