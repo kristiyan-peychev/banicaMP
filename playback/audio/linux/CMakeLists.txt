@@ -11,6 +11,8 @@ else()
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(CMAKE_BUILD_TYPE Debug)
+
 configure_file("${PROJECT_SOURCE_DIR}/audio.h.in" "${PROJECT_SOURCE_DIR}/audio.h")
 include_directories("${PROJECT_BINARY_DIR}/build")
 
