@@ -50,3 +50,6 @@ playback/playlist/build/*
 decode/build/*
 memory/build/*
 config/build/*
+
+ipc/get.h
+playback/audio/linux/audio.h
