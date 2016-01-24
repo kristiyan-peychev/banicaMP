@@ -1,0 +1,8 @@
+#ifndef GET_H_IN_YZPMLKEO
+#define GET_H_IN_YZPMLKEO
+
+#include @INCLUDE_DIR@
+
+
+#endif /* end of include guard: GET_H_IN_YZPMLKEO */
+
