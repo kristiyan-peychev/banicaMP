@@ -11,13 +11,11 @@ else()
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_BUILD_TYPE Debug)
-
 configure_file("${PROJECT_SOURCE_DIR}/audio.h.in" "${PROJECT_SOURCE_DIR}/audio.h")
 include_directories("${PROJECT_BINARY_DIR}/build")
 
 add_executable(aplay aplay.c)
 target_link_libraries(aplay ${APLAY_DEPLIBS})
 
-add_library(audio SHARED audio.cpp aplay.cpp)
+add_library(audio audio.cpp aplay.cpp)
 target_link_libraries(audio ${APLAY_DEPLIBS})
