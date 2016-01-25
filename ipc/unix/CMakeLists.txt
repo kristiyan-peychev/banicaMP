@@ -14,4 +14,4 @@ set(CMAKE_BUILD_TYPE Debug)
 include_directories("${PROJECT_BINARY_DIR}/build")
 
 
-add_library(interprocess SHARED interprocess.cpp)
+add_library(ipc SHARED interprocess.cpp)

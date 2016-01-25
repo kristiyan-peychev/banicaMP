@@ -9,19 +9,20 @@
 class interprocess_interface {
 
 public:
+    interprocess_interface(){};
     interprocess_interface(std::wstring);
-    virtual ~interprocess_interface();
+    virtual ~interprocess_interface(){};
     
 protected:
-    virtual std::wstring serialize(std::wstring);
-    virtual void deserialize(std::wstring);
+    virtual std::string serialize(std::string)=0;
+    virtual std::string deserialize(std::string)=0;
 
-    void send_msg(std::wstring);
+    void send_msg(std::string);
+    void listen();
 
 private:
 
     void run();
-    void listen();
 };
 
 namespace ipc {
