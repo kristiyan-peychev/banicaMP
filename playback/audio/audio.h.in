@@ -36,11 +36,7 @@ public:
 	play_wav(const play_wav &) = delete;
 };
 
-#if defined(linux)
-#include "linux/play.h"
-#elif defined(WIN32)
-#include "windows/play.h"
-#endif
+#include @AUDIO_INCLUDE_PATH@
 
 extern "C" play_wav *get_player(FILE *);
 
