@@ -14,9 +14,10 @@
 #include <exception>
 
 #define PARENT_PIPE_NAME "banica_player_chld_ctl_fifo"
+#define APLAY_ARG_COUNT 7
 
 static const char *aplay_args[] = {
-	"/aplay", // executable name
+    "/aplay", // executable name
     "-f", "cd", // 16-bit signed integer
     "-t", "wav", // WAVE file
     "-q", // quiet mode
@@ -30,20 +31,20 @@ alsa_wav_player::~alsa_wav_player(void)
 }
 
 alsa_wav_player::alsa_wav_player(FILE *filep) :
-        is_paused(true), childpid(0), child_pipe(0), input_mem(0),
-        flg(FLG_FILE)
+    is_paused(true), childpid(0), child_pipe(0), input_mem(0),
+    flg(FLG_FILE)
 {
     input_fd = fileno(filep);
 }
 
 alsa_wav_player::alsa_wav_player(memory_ref &input) :
-        is_paused(true), childpid(0), input_fd(-1), input_mem(input),
-        flg(FLG_MEM)
+    is_paused(true), childpid(0), input_fd(-1), input_mem(input),
+    flg(FLG_MEM)
 { }
 
 alsa_wav_player::alsa_wav_player(int fd) :
-        is_paused(true), childpid(0), input_fd(fd), child_pipe(0), input_mem(0),
-        flg(FLG_FILE)
+    is_paused(true), childpid(0), input_fd(fd), child_pipe(0), input_mem(0),
+    flg(FLG_FILE)
 { }
 
 void alsa_wav_player::begin(void)
@@ -130,45 +131,46 @@ void alsa_wav_player::begin_mem(void)
 
 void alsa_wav_player::begin_file(void)
 {
-	childpid = fork();
+    childpid = fork();
 
     if (childpid == -1) {
         perror("fork");
         exit(EXIT_FAILURE);
     }
-	if (childpid) {
-		is_paused = false;
+    if (childpid) {
+        is_paused = false;
 
         mknod(PARENT_PIPE_NAME, S_IFIFO | 0666, 0);
         child_pipe = open(PARENT_PIPE_NAME, O_WRONLY);
 
         wait(NULL); // FIXME?
         lseek(input_fd, 0, SEEK_SET);
-	} else {
-		unsigned int f = 1;
-		char **execarg = new char * [9];
-		*execarg = new char [NAME_SIZE];
-		strcpy(*execarg, pwd);
-		strcat(*execarg, *aplay_args);
-		while (f < /*sizeof(aplay_args)*/7) {
-			execarg[f] = new char [sizeof(aplay_args[f]) + 1];
-			strcpy(execarg[f], aplay_args[f]);
-			++f;
-		}
-        if (flg & FLG_MEM) {
-            execarg[f] = new char [2];
-            strcpy(execarg[f], "a");
+    } else {
+        unsigned int f = 1;
+        char **execarg = new char * [9];
+        *execarg = new char [NAME_SIZE];
+        strcpy(*execarg, pwd);
+        strcat(*execarg, *aplay_args);
+        while (f < /*sizeof(aplay_args)*/APLAY_ARG_COUNT) {
+            execarg[f] = new char [sizeof(aplay_args[f]) + 1];
+            strcpy(execarg[f], aplay_args[f]);
             ++f;
         }
-		execarg[f] = (char *) NULL;
 
-		execvp(*execarg, execarg);
-		perror("execv");
-		exit(EXIT_FAILURE);
-	}
+        execarg[f] = (char *) NULL;
+        
+        if (dup2(input_fd, STDIN_FILENO) == -1) {
+            perror("dup2"); // FIXME
+            return;
+        }
+
+        execvp(*execarg, execarg);
+        perror("execv");
+        exit(EXIT_FAILURE);
+    }
 }
 
 extern "C" play_wav *get_player(FILE *file)
 {
-	return new alsa_wav_player(file);
+    return new alsa_wav_player(file);
 }
