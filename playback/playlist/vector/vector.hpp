@@ -15,7 +15,7 @@ vector<T>::vector(const vector &o)
     T *tmp = new T [o.size()];
     T *c = o.start, *tmpcpy = tmp;
 
-    while (c != o.ending) {
+    while (c != o.current+1) {
         *tmpcpy = *c++;
         tmpcpy++;
     }
@@ -34,7 +34,7 @@ vector<T> &vector<T>::operator=(const vector &o)
     T *tmp = new T [o.size()];
     T *c = o.start, *tmpcpy = tmp;
 
-    while (c != o.ending) {
+    while (c != o.current+1) {
         *tmpcpy = *c++;
         tmpcpy++;
     }
@@ -89,7 +89,7 @@ void vector<T>::push_back(const T& a)
 template<typename T>
 T& vector<T>::operator[](size_t i)
 {
-    if ((start + i) < current)
+    if ((start + i) <= current)
         return start[i];
 
     throw std::out_of_range("index out of range");
@@ -132,8 +132,12 @@ void vector<T>::remove(size_t idx)
     if (el > current)
         throw std::out_of_range("index out of range");
 
-    while (c > el)
-        *--c = *(c + 1);
+    while(el < c){
+        *el = *(el + 1);
+        el++;
+    }
+
+    current--;
 
     if(((size_t) start + (size_t) current) <= 
             ((size_t) ending - (size_t) start) / 4)
@@ -143,7 +147,7 @@ void vector<T>::remove(size_t idx)
 template<typename T>
 ssize_t vector<T>::find(T& elem) noexcept
 {
-    for (T *itr = start; itr < current; itr++) 
+    for (T *itr = start; itr <= current; itr++) 
         if(*itr == elem)
             return (itr - start);
 
@@ -159,7 +163,7 @@ bool vector<T>::empty(void) const
 template<typename T>
 void vector<T>::clear(void) noexcept
 {
-    current = start;
+    current = start-1;
 }
 
 template<typename T>
