@@ -20,7 +20,7 @@ public:
     ~vector();
 
     bool empty() const;
-    size_t size() const { return (current - start); }
+    size_t size() const { return (current - start + 1); }
     size_t capacity() const { return (ending - start); }
     T& last() const noexcept { return *current; }
 
@@ -60,9 +60,9 @@ public:
     };
 
     iterator begin(){ return iterator(start); }
-    iterator end() { return iterator(current - 1); }
-    iterator rbegin(){ return iterator(current - 1); }
-    iterator rend(){ return iterator(start); }
+    iterator end() { return iterator(current + 1); }
+    iterator rbegin(){ return iterator(current); }
+    iterator rend(){ return iterator(start - 1); }
 };
 
 #include "vector.hpp"

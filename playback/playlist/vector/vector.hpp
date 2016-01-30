@@ -60,9 +60,9 @@ void vector<T>::resize(bool grow)
 {
     int new_cap;
     if(grow)
-        new_cap = size() << 1;
+        new_cap = (size_t) (ending - start - 1) * 2;
     else
-        new_cap = size() >> 1;
+        new_cap = (size_t) (ending - start - 1) / 2;
 
     T *tmp = new T[new_cap];
     T *tmpcpy = tmp, *itr = start;
@@ -103,10 +103,6 @@ void vector<T>::pop_back()
         throw std::out_of_range("array is empty");
 
     --current;
-    // I believe this should be removed >.<
-    if (((size_t) start + (size_t) current) <=
-            ((size_t) ending - (size_t) start) / 4)
-        resize(false);
 }
 
 template<typename T>
