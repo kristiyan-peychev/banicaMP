@@ -15,8 +15,8 @@
 
 #define MAKE_UNREGISTER(x)  bool unregister_##x##(callback &cb)\
                             {\
-                               if (!event_##x##.find(cb)) {\
-                                   event_##x##.erase(cb);\
+                               if ((int i = event_##x##.find(cb))) {\
+                                   event_##x##.remove(i);\
                                    return true;\
                                }\
                                return false;\
