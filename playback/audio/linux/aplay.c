@@ -95,11 +95,6 @@ static fftw_complex *dft_in;
 static fftw_complex *dft_out;
 static fftw_plan dft_plan;
 
-static _Bool shared_mem_flag = 0;
-static int shared_mem_size;
-static int shmid;
-static char *shptr;
-
 /* ^ custom */
 
 static snd_pcm_sframes_t (*readi_func)(snd_pcm_t *handle, void *buffer, snd_pcm_uframes_t size);
@@ -266,61 +261,6 @@ static void seek(int signum)
     toggle_pause(0);
 }
 
-/* init_shared
- * This function shall be used to initialize a shared segment of memory
- * from which this program will read a decoded song and play it. What it
- * does is it reads the segment's size and file name from a parent process via a
- * FIFO and it opens it for reading. Zeroes must be used to separate the size
- * from the file name, this is needed for obvious reasons.
- */
-
-void init_shared(void)
-{
-    int rd;
-    int size;
-    int shmkey = 0;
-    int f = 0;
-    char reed;
-    char *naem = (char *) malloc(256 * sizeof(*naem));
-
-    while ((rd = read(parent_pipe, &f, sizeof(f))) > 0) {
-        if (f > 0) {
-            size = f;
-            break;
-        }
-    }
-    f = 0;
-    while ((rd = read(parent_pipe, &reed, sizeof(reed))) > 0) {
-        *(naem + f) = reed;
-        f += rd;
-
-        if (reed == 0)
-            break;
-    }
-
-    shmkey = ftok(naem, '&');
-    if (shmkey == -1) {
-        perror("ftok");
-        exit(EXIT_FAILURE);
-    }
-
-    shmid = shmget(shmkey, size, 0644 | IPC_CREAT);
-    if (shmid == -1) {
-        perror("shmget");
-        exit(EXIT_FAILURE);
-    }
-    /* TODO: get the actual pointers */
-
-    shptr = (char *) shmat(shmid, NULL, 0);
-
-    if (shptr == (void *) (-1)) {
-        perror("shmat");
-        exit(EXIT_FAILURE);
-    }
-    
-    shared_mem_size = size;
-    shared_mem_flag = 1;
-}
 /* /custom */
 
 int main(int argc, char *argv[])
@@ -382,7 +322,6 @@ int main(int argc, char *argv[])
         {"separate-channels", 0, 0, 'I'},
         {"playback", 0, 0, 'P'},
         {"capture", 0, 0, 'C'},
-        {"shared-mem", 0, 0, 'a'},
 /*#ifdef CONFIG_SUPPORT_CHMAP*/
         /*{"chmap", 1, 0, 'm'},*/
 /*#endif*/
@@ -524,9 +463,6 @@ int main(int argc, char *argv[])
             if (file_type == FORMAT_DEFAULT)
                 file_type = FORMAT_WAVE;
             break;
-        case 'a': // AAAAAAA
-            init_shared();
-            break;
 #ifdef CONFIG_SUPPORT_CHMAP
         case 'm':
             channel_map = snd_pcm_chmap_parse_string(optarg);
@@ -657,11 +593,6 @@ static ssize_t safe_read(int fd, void *buf, size_t count)
         buf = (char *)buf + res;
     }
     return result;
-}
-
-static ssize_t shared_read(void *buf, size_t count)
-{
-    // TODO
 }
 
 /*
@@ -1766,8 +1697,7 @@ static void playback(char *name)
     fd = fileno(stdin);
     name = "stdin";
     /* read bytes for WAVE-header */
-    if (shared_mem_flag) {
-    } else if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
+    if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
         pbrec_count = calc_count();
         playback_go(fd, dtawave, pbrec_count, FORMAT_WAVE, name);
     } else {
