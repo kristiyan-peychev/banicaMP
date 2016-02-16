@@ -11,7 +11,8 @@ class memory_ref {
         int      refs;
         size_t   size;
         char    *start;
-        char    *current_position;
+        char    *current_position_write;
+        char    *current_position_read;
         char    *ending;
     } *mem;
 public:
@@ -26,11 +27,13 @@ public:
     char       *begin(void) noexcept;
     char       *const end(void) const noexcept;
     size_t      cap(void) const noexcept; // capacity
+    size_t      get_current_offset(void) const noexcept;
 public:
     char        operator[](size_t) noexcept(false);
     void        write(const char *, size_t) noexcept(false);
     const char *read(size_t index, size_t num_bytes) noexcept(false);
     char       *read(size_t num_bytes) noexcept(false);
+    long        read(char **buffer, size_t num_bytes) noexcept(false);
 public:
     void expand(size_t) noexcept(false);
 public:

@@ -22,12 +22,13 @@ memory_ref::~memory_ref(void)
 
 memory_ref::memory_ref(size_t size) noexcept(false)
 {
-    mem = new memory_core;
-    mem->refs               = 1;
-    mem->size               = size;
-    mem->start              = new char [size];
-    mem->current_position   = mem->start;
-    mem->ending             = mem->start + size;
+    mem                             = new memory_core;
+    mem->refs                       = 1;
+    mem->size                       = size;
+    mem->start                      = new char [size];
+    mem->current_position_write     = mem->start;
+    mem->current_position_read      = mem->start;
+    mem->ending                     = mem->start + size;
 }
 
 memory_ref::memory_ref(memory_ref &ref)
@@ -67,6 +68,12 @@ size_t memory_ref::cap(void) const noexcept
     return mem->size;
 }
 
+size_t memory_ref::get_current_offset(void) const noexcept
+{
+    is_valid_throw();
+    return mem->current_offset;
+}
+
 char memory_ref::operator[](size_t index) noexcept(false)
 {
     is_valid_throw();
@@ -83,12 +90,12 @@ void memory_ref::write(const char *data, size_t write_size) noexcept(false)
     is_valid_throw();
     if (cap() == 0)
         throw memory::null_allocation();
-    if ((mem->current_position + write_size) >= end())
+    if ((mem->current_position_write + write_size) >= end())
         throw memory::write_failed();
 
-    if (memmove(mem->current_position, data, write_size) == NULL)
+    if (memmove(mem->current_position_write, data, write_size) == NULL)
         throw memory::write_failed();
-    mem->current_position = mem->current_position + write_size;
+    mem->current_position_write = mem->current_position_write + write_size;
 }
 
 const char *memory_ref::read(size_t index, size_t num_bytes) noexcept(false)
@@ -100,7 +107,7 @@ const char *memory_ref::read(size_t index, size_t num_bytes) noexcept(false)
         throw memory::out_of_range();
     if (index > (cap() - 1))
         throw memory::out_of_range();
-    // operator[] will check for null-allocation and if index is out of range
+
     return (mem->start + index);
 }
 
@@ -109,11 +116,25 @@ char *memory_ref::read(size_t num_bytes) noexcept(false)
     is_valid_throw();
     if (cap() == 0)
         throw memory::null_allocation();
-    if ((((size_t) (mem->current_position - mem->start)) + num_bytes) > (cap() - 1))
+    if ((((size_t) (mem->current_position_read - mem->start)) + num_bytes) > (cap() - 1))
         throw memory::out_of_range();
     
-    char *ret = mem->current_position + num_bytes;
-    mem->current_position = mem->current_position + num_bytes;
+    char *ret = mem->current_position_read + num_bytes;
+    mem->current_position_read = mem->current_position_read + num_bytes;
+    return ret;
+}
+
+long memory_ref::read(char **buffer, size_t num_bytes) noexcept(false)
+{
+    is_valid_throw();
+
+    char *where;
+    long ret;
+    where = memcpy(*buffer, read(num_bytes), num_bytes);
+
+    ret = (long) where - (long) mem->current_position_read;
+    mem->current_position_read += ret;
+
     return ret;
 }
 
@@ -127,9 +148,9 @@ void memory_ref::expand(size_t add) noexcept(false)
     if (memcpy(tmp, mem->start, mem->size) == NULL)
         throw memory::expand_failed();
 
-    size_t curpos_offset = mem->current_position - mem->start;
+    size_t curpos_offset = mem->current_position_write - mem->start;
     std::swap(tmp, mem->start);
-    mem->current_position = mem->start + curpos_offset;
+    mem->current_position_write = mem->start + curpos_offset;
     mem->size += add;
     mem->ending = mem->start + mem->size;
 }
