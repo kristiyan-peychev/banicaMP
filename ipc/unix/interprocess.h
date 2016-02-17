@@ -18,23 +18,27 @@ public:
     virtual ~interprocess();
     
 protected:
-    virtual std::string serialize(std::string str){ return str;}
-    virtual std::string deserialize(std::string str){ return str;}
+    virtual std::string on_msg_send(std::string& str){ return str;}
+    virtual std::string on_msg_receive(std::string& str){ 
+        std::cout<<"On receive thread: "<<std::this_thread::get_id()<<std::endl;
+        std::cout<<"str: "<<str<<std::endl;
+        return str;
+    }
 public:
     void send_msg(std::string);
     void listen();
 
-    void set_msg_size(size_t size){ msg_size = size;}
-
 private:
     std::string filename;
+    std::string last_msg;
     bool quit;
-    size_t msg_size;
-    std::thread thread;
+    std::thread th;
+
 
     void run();
 
-    std::string wstos(std::wstring);
+    std::string wstos(const std::wstring&);
+
 };
 
 #endif /* end of include guard: INTERPROCESS_H_JDAPM9K3 */

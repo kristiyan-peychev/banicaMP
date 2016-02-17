@@ -5,7 +5,6 @@
 #include <exception>
 #include <stdexcept>
 
-//don't laugh too much
 class interprocess_interface {
 
 public:
@@ -14,9 +13,10 @@ public:
     virtual ~interprocess_interface(){};
     
 protected:
-    virtual std::string serialize(std::string)=0;
-    virtual std::string deserialize(std::string)=0;
+    virtual std::string on_msg_send(std::string&)=0;
+    virtual std::string on_msg_receive(std::string&)=0;
 
+public:
     void send_msg(std::string);
     void listen();
 
@@ -27,6 +27,27 @@ private:
 
 namespace ipc {
     class exception: public std::exception {};
+
+    class fifo_open_error: public ipc::exception {
+        public: 
+        const char* what() noexcept {
+            return "Error while opening fifo";
+        }
+    };
+
+    class fifo_create_error: public ipc::exception {
+        public:
+        const char* what() noexcept {
+            return "Error while creating fifo";
+        }
+    };
+
+    class wrong_msg_size: public ipc::exception {
+    public:
+        const char* what() noexcept {
+            return "Message size is wrong";
+        }
+    };
 }
 
 
