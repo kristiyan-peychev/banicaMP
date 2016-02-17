@@ -71,7 +71,7 @@ size_t memory_ref::cap(void) const noexcept
 size_t memory_ref::get_current_offset(void) const noexcept
 {
     is_valid_throw();
-    return mem->current_offset;
+    return mem->current_position_read - mem->start;
 }
 
 char memory_ref::operator[](size_t index) noexcept(false)
@@ -130,7 +130,7 @@ long memory_ref::read(char **buffer, size_t num_bytes) noexcept(false)
 
     char *where;
     long ret;
-    where = memcpy(*buffer, read(num_bytes), num_bytes);
+    where = (char *) memcpy(*buffer, read(num_bytes), num_bytes);
 
     ret = (long) where - (long) mem->current_position_read;
     mem->current_position_read += ret;
