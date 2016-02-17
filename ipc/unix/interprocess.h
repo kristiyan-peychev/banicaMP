@@ -10,7 +10,6 @@
 #include <thread>
 #include <clocale>
 #include <cstdlib>
-#include <iostream> //remove later
 class interprocess: public interprocess_interface {
 
 public:
@@ -18,12 +17,8 @@ public:
     virtual ~interprocess();
     
 protected:
-    virtual std::string on_msg_send(std::string& str){ return str;}
-    virtual std::string on_msg_receive(std::string& str){ 
-        std::cout<<"On receive thread: "<<std::this_thread::get_id()<<std::endl;
-        std::cout<<"str: "<<str<<std::endl;
-        return str;
-    }
+    virtual std::string on_msg_send(std::string& str) = 0;
+    virtual std::string on_msg_receive(std::string& str) = 0;
 public:
     void send_msg(std::string);
     void listen();
