@@ -7,5 +7,6 @@ option(debug "DEBUG" "")
 add_subdirectory(config config/build)
 add_subdirectory(decode decode/build)
 add_subdirectory(memory memory/build)
+add_subdirectory(ipc ipc/build)
 
 add_subdirectory(playback playback)

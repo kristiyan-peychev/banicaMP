@@ -8,8 +8,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <thread>
+#include <mutex>
 #include <clocale>
 #include <cstdlib>
+
 class interprocess: public interprocess_interface {
 
 public:
@@ -17,8 +19,8 @@ public:
     virtual ~interprocess();
     
 protected:
-    virtual std::string on_msg_send(std::string& str) = 0;
-    virtual std::string on_msg_receive(std::string& str) = 0;
+    virtual std::string on_msg_send(std::string& str)=0;
+    virtual std::string on_msg_receive(std::string& str)=0;
 public:
     void send_msg(std::string);
     void listen();
@@ -28,6 +30,7 @@ private:
     std::string last_msg;
     bool quit;
     std::thread th;
+    std::mutex read_mutex;
 
 
     void run();

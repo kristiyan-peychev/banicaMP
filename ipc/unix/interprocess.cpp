@@ -26,6 +26,7 @@ void interprocess::send_msg(std::string msg)
     }
     msg = on_msg_send(msg);
     int size = msg.size();
+    std::lock_guard<std::mutex> lock(read_mutex);
     write(fd, (const char*)(&size),sizeof(size)); //send size 
     write(fd, msg.c_str(), size); //send msg
     close(fd);
@@ -49,7 +50,7 @@ void interprocess::run()
     }
     char* buff;
     int size;
-    while(true){
+    while (true) {
         if (read(fd,(char*)(&size),sizeof(size)) == sizeof(size)) { //read size of msg 
             buff = new char[size+1];
             if (read(fd, buff, size) != size) {//read msg
