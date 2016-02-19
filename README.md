@@ -19,6 +19,9 @@ To build the project just execute:
 *   Get more decoders;
 *   Make a proper GUI;
 *   Make a proper CLI;
+*   Add a logger
+*   Add a persist/config system
+*   Add networking support
 *   ~~Add a compile-all CMakeLists file~~;
 *   Comments! Comments all around!
 *   Edit TODOs.
