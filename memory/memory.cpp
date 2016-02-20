@@ -155,6 +155,48 @@ void memory_ref::expand(size_t add) noexcept(false)
     mem->ending = mem->start + mem->size;
 }
 
+void memory_ref::seek(ssize_t num_bytes, int mode) noexcept(false)
+{
+    is_valid_throw();
+
+    switch(mode) {
+    case seek_none:
+    break;
+    case seek_rd_current:
+        mem->current_position_read += num_bytes;
+    break;
+    case seek_wr_current:
+        mem->current_position_write += num_bytes;
+    break;
+    case seek_rd_begin:
+        if (num_bytes < 0)
+            throw memory::out_of_range();
+
+        mem->current_position_read = begin() + num_bytes;
+    break;
+    case seek_wr_begin:
+        if (num_bytes < 0)
+            throw memory::out_of_range();
+
+        mem->current_position_write = begin() + num_bytes;
+    break;
+    case seek_rd_end:
+        if (num_bytes > 0)
+            throw memory::out_of_range();
+
+        mem->current_position_read = end() + num_bytes;
+    break;
+    case seek_wr_end:
+        if (num_bytes > 0)
+            throw memory::out_of_range();
+
+        mem->current_position_write = end() + num_bytes;
+    break;
+    default:
+    break;
+    }
+}
+
 bool memory_ref::is_valid() const noexcept
 {
     return (mem != NULL);

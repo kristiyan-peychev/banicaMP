@@ -6,6 +6,16 @@
 #include <exception>
 #include <stdexcept>
 
+enum seek_control {
+    seek_none = 0,
+    seek_rd_current,
+    seek_wr_current,
+    seek_rd_begin,
+    seek_wr_begin,
+    seek_rd_end,
+    seek_wr_end,
+};
+
 class memory_ref {
     struct memory_core {
         int      refs;
@@ -21,11 +31,11 @@ public:
     ~memory_ref(void);
     memory_ref(memory_ref &);
     memory_ref &operator=(memory_ref &);
-    memory_ref(size_t) noexcept(false);
+    memory_ref(size_t size) noexcept(false);
 public:
     // Change names?
     char       *begin(void) noexcept;
-    char       *const end(void) const noexcept;
+    char *const end(void) const noexcept;
     size_t      cap(void) const noexcept; // capacity
     size_t      get_current_offset(void) const noexcept;
 public:
@@ -34,6 +44,8 @@ public:
     const char *read(size_t index, size_t num_bytes) noexcept(false);
     char       *read(size_t num_bytes) noexcept(false);
     long        read(char **buffer, size_t num_bytes) noexcept(false);
+public:
+    void        seek(ssize_t num_bytes, int mode) noexcept(false); //mode is from enum seek_control
 public:
     void expand(size_t) noexcept(false);
 public:
