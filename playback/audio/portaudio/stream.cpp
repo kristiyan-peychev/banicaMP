@@ -177,10 +177,48 @@ long stream::seek(long bytes)
             return -1;
     break;
     case stream_state_memory:
-        // TODO
+        try {
+            source_memory.seek(seek_len, seek_rd_current);
+        } catch(memory::exception &e) {
+            return -1;
+        }
     break;
     case stream_state_fstream:
         source_fstream.seekg(seek_len, std::ios::cur);
+    break;
+    }
+
+    return seek_len;
+}
+
+long stream::seek(long bytes)
+{
+    long seek_len = bytes;
+    long remain = get_remaining();
+    if (remain < bytes)
+        seek_len = remain;
+
+    std::lock_guard<std::mutex> guard(mutex);
+    switch (state) {
+    case stream_state_none:
+        return -1;
+    break;
+    case stream_state_not_init:
+        return -1;
+    break;
+    case stream_state_file:
+        if (fseek(source_file, 0, SEEK_SET) != 0)
+            return -1;
+    break;
+    case stream_state_memory:
+        try {
+            source_memory.seek(0, seek_rd_begin);
+        } catch(memory::exception &e) {
+            return -1;
+        }
+    break;
+    case stream_state_fstream:
+        source_fstream.seekg(0, std::ios::beg);
     break;
     }
 

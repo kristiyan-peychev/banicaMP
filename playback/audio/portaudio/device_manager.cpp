@@ -41,6 +41,11 @@ double portaudio_output_device::get_default_sample_rate() const
     return device_info->defaultSampleRate;
 }
 
+int portaudio_output_device::get_max_channels() const
+{
+    return device_info->maxOutputChannels;
+}
+
 //===================================================
 // portaudio_enumeration_manager methods
 
@@ -66,7 +71,7 @@ bool portaudio_enumeration_manager::enumerate()
             enumeration = dev;
         } else {
             dev->set_next(new portaudio_output_device());
-            dev = dynamic_cast<portaudio_output_device *>(dev->get_next());
+            dev = dynamic_cast<portaudio_output_device *>(dev->next);
         }
         dev->set_device_info(itr);
     }
@@ -86,10 +91,10 @@ void portaudio_enumeration_manager::free_enumeration()
 
     while (enumeration) {
         portaudio_output_device *tmp = enumeration;
-        enumeration = dynamic_cast<portaudio_output_device *>
-                                    (enumeration->get_next());
+        enumeration = dynamic_cast<portaudio_output_device *>(enumeration->next);
         delete tmp;
     }
+    enumeration = NULL;
 }
 
 //====================================================
@@ -123,8 +128,10 @@ bool portaudio_initialization_manager::initialize_portaudio()
 
 bool portaudio_initialization_manager::terminate_portaudio()
 {
-    if (!portaudio_initialized.test_and_set(std::memory_order_relaxed))
+    if (!get_initialized())
         return false;
+
+    portaudio_initialized.clear();
 
     std::lock_guard<std::mutex> guard(portaudio_lock);
     local_error = Pa_Terminate();
@@ -150,13 +157,14 @@ portaudio_manager::~portaudio_manager()
 }
 
 portaudio_manager::portaudio_manager()
-: players((int) Pa_GetDeviceCount())
+//: players((int) Pa_GetDeviceCount())
 {
-    if (!manager_initialized.test_and_set(std::memory_order_relaxed))
+    if (manager_initialized.test_and_set(std::memory_order_relaxed))
         throw audio::double_initialization();
 
-    for (auto &i : players)
-        i = NULL;
+    int i;
+    for (i = 0; i < (int) Pa_GetDeviceCount(); ++i)
+        players.push_back(NULL);
 }
 
 bool portaudio_manager::reg(portaudio_wav_player *player,

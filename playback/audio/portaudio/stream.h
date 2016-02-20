@@ -39,6 +39,7 @@ public:
     long get_remaining();
     long fill_buffer(char **buffer, unsigned long bytes);
     long seek(long bytes);
+    long rewind();
 public:
     friend stream &operator<<(stream &st, long next_read_bytes);
     friend stream &operator>>(stream &st, char **buffer_to_fill);

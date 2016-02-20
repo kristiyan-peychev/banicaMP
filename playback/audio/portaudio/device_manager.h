@@ -19,9 +19,12 @@ public:
     void        set_device_info(PaDeviceIndex index);
     void        set_next(portaudio_output_device *dev);
 public:
+    friend class portaudio_enumeration_manager;
+public:
     int         get_id() const;
     const char *get_name() const;
     double      get_default_sample_rate() const;
+    int         get_max_channels() const;
 };
 
 class portaudio_enumeration_manager {

@@ -182,6 +182,25 @@ void portaudio_wav_player::toggle_pause()
         pause();
 }
 
+void portaudio_wav_player::stop()
+{
+    global_error = Pa_StopStream(main_stream);
+
+    if (global_error != paNoError) {
+        throw audio::playback_could_not_stop();
+    } else {
+        read_stream.rewind();
+        state_flags |= state_stopped;
+    }
+}
+
+void portaudio_wav_player::seek(int bytes)
+{
+    pause();
+    read_stream.seek(bytes);
+    play();
+}
+
 bool portaudio_wav_player::get_playing() const
 {
     return get_flag(state_playing);
