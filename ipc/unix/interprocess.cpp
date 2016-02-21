@@ -1,6 +1,4 @@
 #include "interprocess.h"
-#include <sys/poll.h>
-#include <cstring>
 
 interprocess::interprocess(std::wstring _filename):filename(_filename.begin(), _filename.end()), quit(false) 
 {
