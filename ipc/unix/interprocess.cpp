@@ -41,11 +41,15 @@ void interprocess::listen()
 
 void interprocess::run()
 {
-
     int fd = open(filename.c_str(),O_RDWR);
     if (fd == -1) {
         throw ipc::fifo_open_error();
     }
+    if (flock(fd,LOCK_EX | LOCK_NB) == -1) {
+        if (errno == EWOULDBLOCK)
+            throw ipc::server_process_connected();
+    }
+
     char* buff;
     int size;
     while (true) {
