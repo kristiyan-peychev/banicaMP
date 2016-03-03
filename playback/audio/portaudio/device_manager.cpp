@@ -157,14 +157,17 @@ portaudio_manager::~portaudio_manager()
 }
 
 portaudio_manager::portaudio_manager()
-//: players((int) Pa_GetDeviceCount())
 {
     if (manager_initialized.test_and_set(std::memory_order_relaxed))
         throw audio::double_initialization();
+}
 
-    int i;
-    for (i = 0; i < (int) Pa_GetDeviceCount(); ++i)
-        players.push_back(NULL);
+bool portaudio_manager::initialize_portaudio()
+{
+    bool ret = portaudio_initialization_manager::initialize_portaudio();
+    players = std::vector<portaudio_wav_player *>(Pa_GetDeviceCount());
+
+    return ret;
 }
 
 bool portaudio_manager::reg(portaudio_wav_player *player,

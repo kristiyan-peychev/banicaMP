@@ -9,11 +9,7 @@
 #include <portaudio.h>
 #include <exception>
 
-namespace audio {
-    portaudio_manager device_manager;
-}
-
-#define FRAMES_PER_BUFFER 256
+#define FRAMES_PER_BUFFER 0x10000
 
 typedef enum {
     state_none        = 0,
@@ -109,6 +105,12 @@ namespace audio {
     class player_failed_to_register : public exception {
         const char *what() noexcept {
             return "Player failed to register with the portaudio device manager";
+        }
+    };
+
+    class wav_player_not_initialized : public exception {
+        const char *what() noexcept {
+            return "Portaudio wav player was not initialized";
         }
     };
 }

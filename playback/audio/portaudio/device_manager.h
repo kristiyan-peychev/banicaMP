@@ -49,10 +49,10 @@ public:
     virtual ~portaudio_initialization_manager();
             portaudio_initialization_manager();
 public:
-    bool    initialize_portaudio();
-    bool    terminate_portaudio();
-    PaError get_last_error() const;
-    bool    get_initialized() const;
+    virtual bool    initialize_portaudio();
+    virtual bool    terminate_portaudio();
+    PaError         get_last_error() const;
+    bool            get_initialized() const;
 };
 
 /* class portaudio_manager
@@ -70,6 +70,8 @@ class portaudio_manager : public portaudio_initialization_manager {
 public:
    ~portaudio_manager();
     portaudio_manager();
+public:
+    bool initialize_portaudio() override;
 public:
     bool reg(portaudio_wav_player *player, PaDeviceIndex device);
     bool unreg(portaudio_wav_player *player);

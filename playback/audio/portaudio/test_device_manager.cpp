@@ -5,13 +5,25 @@
 
 int main(int argc, const char *argv[]) {
     portaudio_enumeration_manager enumerator;
+    printf("Initializing portaudio\n");
     audio::initialize();
+    printf("Portaudio initialized\n");
+
     assert(enumerator.enumerate());
     const output_device *itr = enumerator.get_enumeration();
     while (itr) {
         printf("Enumerated device: %s, channel count %d, sample rate %lf\n", itr->get_name(), itr->get_max_channels(), itr->get_default_sample_rate());
         itr = itr->get_next();
     }
+
+    FILE *source = fopen("/home/kawaguchi/TheFatRat - Unity.wav", "r");
+    portaudio_wav_player player(source, 2);
+    player.initialize();
+    player.begin();
+    Pa_Sleep(50*1000);
+
+    printf("Terminating portaudio\n");
     audio::terminate();
+    printf("Portaudio terminated\n");
 return 0;
 }

@@ -4,6 +4,9 @@
 
 #include <mutex>
 #include <fstream>
+#include <vector>
+#include <atomic>
+#include <thread>
 
 #include "../../../memory/memory.h"
 
@@ -16,6 +19,30 @@ typedef enum {
 } stream_state;
 
 class stream {
+    struct buffer {
+        char *data;
+        size_t size;
+    public:
+       ~buffer();
+        buffer(size_t alloc = 0);
+        buffer &operator=(const buffer &other);
+    };
+
+    class buffer_manager : protected std::vector<buffer> {
+        stream             *read;
+        std::atomic_flag    lock;
+        std::thread         prefill_thread;
+        size_t              next_fill_index;
+        bool                die_flag;
+    public:
+       ~buffer_manager();
+        buffer_manager(stream *st, size_t num_buffers = 2);
+    public:
+        void fill_buffer(buffer &buf);
+    protected:
+        void prebuffer();
+    } manager;
+
     stream_state state;
     FILE        *source_file;
     memory_ref   source_memory;
@@ -27,9 +54,9 @@ public:
    ~stream();
 
     stream();
-    stream(FILE *source);
-    stream(memory_ref source);
-    stream(std::fstream &&source);
+    stream(FILE *source, int prebuffer_num = 2);
+    stream(memory_ref source, int prebuffer_num = 2);
+    stream(std::fstream &&source, int prebuffer_num = 2);
 public:
     stream_state get_state() const;
     bool         get_flag(int mask) const;
@@ -40,6 +67,8 @@ public:
     long fill_buffer(char **buffer, unsigned long bytes);
     long seek(long bytes);
     long rewind();
+protected:
+    void fill_buffer(buffer &buf, size_t bytes);
 public:
     friend stream &operator<<(stream &st, long next_read_bytes);
     friend stream &operator>>(stream &st, char **buffer_to_fill);

@@ -2,6 +2,10 @@
 
 #include <cstring>
 
+namespace audio {
+    portaudio_manager device_manager;
+}
+
 static int pa_stream_callback(const void *input_buffer,
                               void *output_buffer,
                               unsigned long frames_per_buffer,
@@ -117,7 +121,7 @@ void portaudio_wav_player::initialize()
         throw audio::player_failed_to_register();
 
     global_error = Pa_OpenStream( &main_stream,
-                                  &input_stream_params,
+                                  NULL,
                                   &output_stream_params,
                                   sample_rate,
                                   frames_per_buffer,
@@ -132,7 +136,7 @@ void portaudio_wav_player::initialize()
 void portaudio_wav_player::begin()
 {
     if (!get_flag(state_initialized))
-        throw audio::initialization_failed();
+        throw audio::wav_player_not_initialized();
 
     if (get_flag(state_playing))
         return;
