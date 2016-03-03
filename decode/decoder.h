@@ -6,19 +6,13 @@
 #include <cstring>
 #include <exception>
 
-#if defined(linux)
-#define _LINUX
-#elif defined(WIN32)
-#define _WINDOWS
-#endif
 #include "../memory/memory.h"
-
 
 class decoder {
 public:
-	decoder() { }
-	virtual ~decoder(void) { }
-	virtual bool decode(FILE *output) = 0;
+    decoder() { }
+    virtual ~decoder(void) { }
+    virtual bool decode(FILE *output) = 0;
     virtual bool decode(memory_ref &output) = 0;
 };
 
@@ -29,6 +23,5 @@ namespace decode {
 
 #include "FLAC_decoder.h"
 #include "MPEG_decoder.h"
-
 
 #endif /* end of include guard: DECODER_BHIETHBX */
