@@ -48,6 +48,13 @@ namespace ipc {
             return "Message size is wrong";
         }
     };
+
+    class server_process_connected: public ipc::exception {
+    public:
+        const char* what() noexcept {
+            return "There is a process connected as server";
+        }
+    };
 }
 
 
