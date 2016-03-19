@@ -2,20 +2,19 @@
 
 #define STREAM_74S8YR1
 
-#include <mutex>
 #include <fstream>
 #include <vector>
 #include <atomic>
 #include <thread>
+#include <mutex>
 
 #include "../../../memory/memory.h"
 
 typedef enum {
     stream_state_none       = 0,
-    stream_state_not_init   = 1,
-    stream_state_file       = 2,
-    stream_state_memory     = 4,
-    stream_state_fstream    = 8,
+    stream_state_file       = 1,
+    stream_state_memory     = 2,
+    stream_state_fstream    = 4,
 } stream_state;
 
 class stream {
@@ -28,7 +27,8 @@ class stream {
         buffer &operator=(const buffer &other);
     };
 
-    class buffer_manager : protected std::vector<buffer> {
+    class buffer_manager {
+        std::vector<buffer> buffers;
         stream             *read;
         std::atomic_flag    lock;
         std::thread         prefill_thread;
@@ -39,6 +39,7 @@ class stream {
         buffer_manager(stream *st, size_t num_buffers = 2);
     public:
         void fill_buffer(buffer &buf);
+        void fill_buffer(char **buf, size_t size);
     protected:
         void prebuffer();
     } manager;
