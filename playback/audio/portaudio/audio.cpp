@@ -217,7 +217,7 @@ bool portaudio_wav_player::get_paused() const
 
 bool portaudio_wav_player::get_flag(int mask) const
 {
-   return (state_flags & mask);
+    return (state_flags & mask);
 }
 
 long portaudio_wav_player::fill_buffer(char **buffer,
