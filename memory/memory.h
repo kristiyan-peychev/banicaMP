@@ -5,6 +5,38 @@
 #include <cstdlib>
 #include <exception>
 #include <stdexcept>
+#include <memory>
+
+class _memory {
+    size_t   size;
+    char    *start;
+    char    *current_position_write;
+    char    *current_position_read;
+    char    *ending;
+public:
+   ~_memory();
+    _memory();
+    _memory(size_t size);
+public:
+    char       *begin(void) noexcept;
+    char *const end(void) const noexcept;
+    size_t      cap(void) const noexcept; // capacity
+    size_t      get_read_offset(void) const noexcept;
+    size_t      get_write_offset(void) const noexcept;
+public:
+    void        write(const char *, size_t) noexcept;
+    long        read(char **buffer, size_t num_bytes) noexcept;
+public:
+    void        seek(ssize_t num_bytes, int mode) noexcept(false); //mode is from enum seek_control
+public:
+    void expand(size_t with_size) noexcept;
+};
+
+typedef std::shared_ptr<_memory> shared_memory;
+
+namespace memory {
+    shared_memory alloc(size_t size);
+}
 
 enum seek_control {
     seek_none = 0,
@@ -14,43 +46,6 @@ enum seek_control {
     seek_wr_begin,
     seek_rd_end,
     seek_wr_end,
-};
-
-class memory_ref {
-    struct memory_core {
-        int      refs;
-        size_t   size;
-        char    *start;
-        char    *current_position_write;
-        char    *current_position_read;
-        char    *ending;
-    } *mem;
-public:
-    memory_ref(void)                            = delete;
-public:
-    ~memory_ref(void);
-    memory_ref(memory_ref &);
-    memory_ref &operator=(memory_ref &);
-    memory_ref(size_t size) noexcept(false);
-public:
-    // Change names?
-    char       *begin(void) noexcept;
-    char *const end(void) const noexcept;
-    size_t      cap(void) const noexcept; // capacity
-    size_t      get_current_offset(void) const noexcept;
-public:
-    char        operator[](size_t) noexcept(false);
-    void        write(const char *, size_t) noexcept(false);
-    const char *read(size_t index, size_t num_bytes) noexcept(false);
-    char       *read(size_t num_bytes) noexcept(false);
-    long        read(char **buffer, size_t num_bytes) noexcept(false);
-public:
-    void        seek(ssize_t num_bytes, int mode) noexcept(false); //mode is from enum seek_control
-public:
-    void expand(size_t) noexcept(false);
-public:
-    bool is_valid() const noexcept;
-    void is_valid_throw() const noexcept(false);
 };
 
 namespace memory {

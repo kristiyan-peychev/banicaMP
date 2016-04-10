@@ -11,7 +11,7 @@ public:
     flac_decoder(FILE *);
 public:
     bool decode(FILE *);
-    bool decode(memory_ref &);
+    bool decode(shared_memory);
 private:
     ::FLAC__StreamDecoderWriteStatus write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
     ::FLAC__StreamDecoderWriteStatus mem_write_callback(const ::FLAC__Frame *, const FLAC__int32 * const []);
@@ -26,7 +26,7 @@ private:
 private:
     bool memflg;
     FILE *f; // outfile
-    memory_ref out_mem; // outmem
+    shared_memory out_mem; // outmem
     void *p;
 private:
     FLAC__uint64 total_samples;

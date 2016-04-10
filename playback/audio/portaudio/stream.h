@@ -48,18 +48,18 @@ public:
     } manager;
 
     stream_state state;
-    FILE        *source_file;
-    memory_ref   source_memory;
-    std::fstream source_fstream;
-    long         next_read_size;
+    FILE           *source_file;
+    shared_memory   source_memory;
+    std::fstream    source_fstream;
+    long            next_read_size;
 
     std::mutex   mutex;
 public:
    ~stream();
 
     stream();
-    stream(FILE *source, int prebuffer_num = 4);
-    stream(memory_ref source, int prebuffer_num = 2);
+    stream(FILE *source, int prebuffer_num = 2);
+    stream(shared_memory source, int prebuffer_num = 2);
     stream(std::fstream &&source, int prebuffer_num = 2);
 public:
     stream_state get_state() const;

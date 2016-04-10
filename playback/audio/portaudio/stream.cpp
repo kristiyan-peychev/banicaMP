@@ -101,7 +101,6 @@ stream::stream()
 : manager(this)
 , state(stream_state_none)
 , source_file(NULL)
-, source_memory(0)
 , source_fstream()
 , next_read_size(0)
 { }
@@ -110,12 +109,11 @@ stream::stream(FILE *source, int prebuffer_num)
 : manager(this, prebuffer_num)
 , state(stream_state_file)
 , source_file(source)
-, source_memory(0)
 , source_fstream()
 , next_read_size(0)
 { }
 
-stream::stream(memory_ref source, int prebuffer_num)
+stream::stream(shared_memory source, int prebuffer_num)
 : manager(this, prebuffer_num)
 , state(stream_state_memory)
 , source_file(NULL)
@@ -161,7 +159,7 @@ long stream::size()
     }
     break;
     case stream_state_memory:
-        return source_memory.get_current_offset();
+        return source_memory->get_read_offset();
     break;
     case stream_state_fstream:
     {
@@ -199,7 +197,7 @@ long stream::get_remaining()
     }
     break;
     case stream_state_memory:
-        return source_memory.get_current_offset();
+        return source_memory->get_read_offset();
     break;
     case stream_state_fstream:
     {
@@ -240,7 +238,7 @@ long stream::seek(long bytes)
     break;
     case stream_state_memory:
         try {
-            source_memory.seek(seek_len, seek_rd_current);
+            source_memory->seek(seek_len, seek_rd_current);
         } catch(memory::exception &e) {
             return -1;
         }
@@ -265,7 +263,7 @@ long stream::rewind()
     break;
     case stream_state_memory:
         try {
-            source_memory.seek(0, seek_rd_begin);
+            source_memory->seek(0, seek_rd_begin);
         } catch(memory::exception &e) {
             return -1;
         }
@@ -294,7 +292,7 @@ void stream::fill_buffer(buffer &buf, size_t bytes)
         buf.size = fread(buf.data, 1, copy_size, source_file);
     break;
     case stream_state_memory:
-        buf.size = source_memory.read(&buf.data, copy_size);
+        buf.size = source_memory->read(&buf.data, copy_size);
     break;
     case stream_state_fstream:
         source_fstream.read(buf.data, copy_size);
