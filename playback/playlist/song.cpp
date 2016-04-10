@@ -122,3 +122,24 @@ void song::seek(int secs)
         player->seek(BYTES_PER_SEC * secs);
 }
 
+track_wrapper::~track_wrapper()
+{
+    if (m_previous && m_previous->m_next == this)
+        m_previous->m_next = m_next;
+
+    if (m_next && m_next->m_previous == this)
+        m_next->m_previous = m_previous;
+}
+
+bool track_wrapper::set_previous(track_wrapper *previous)
+{
+    if (!previous)
+        return false;
+
+    if (m_previous) {
+        m_previous->m_next = previous;
+        m_previous->m_previous = previous->m_previous;
+        previous->m_next = this;
+    }
+    return true;
+}

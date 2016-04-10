@@ -79,8 +79,8 @@ private:
 private:
     static void play_song(song&);
 public:
+	virtual ~song();
 	song(const char* );
-	~song();
     
 
     void load_song();
@@ -96,6 +96,20 @@ public:
     void stop();
     void seek(int);
 
+};
+
+class track_wrapper : public song {
+private:
+    track_wrapper *m_previous;
+    track_wrapper *m_next;
+public:
+   ~track_wrapper();
+    track_wrapper();
+    bool set_previous   (track_wrapper *previous = NULL);
+    bool set_next       (track_wrapper *next = NULL);
+public:
+    track_wrapper *get_previous() const { return previous; }
+    track_wrapper *get_next()     const { return next; }
 };
 
 #endif
