@@ -118,9 +118,9 @@ bool portaudio_initialization_manager::initialize_portaudio()
 
     std::lock_guard<std::mutex> guard(portaudio_lock);
     local_error = Pa_Initialize();
-    if (local_error != paNoError)
+    if (local_error != paNoError) {
         return false;
-    else {
+    } else {
         initflag = true;
         return true;
     }
@@ -135,9 +135,9 @@ bool portaudio_initialization_manager::terminate_portaudio()
 
     std::lock_guard<std::mutex> guard(portaudio_lock);
     local_error = Pa_Terminate();
-    if (local_error != paNoError)
+    if (local_error != paNoError) {
         return false;
-    else {
+    } else {
         initflag = false;
         return true;
     }
@@ -171,7 +171,7 @@ bool portaudio_manager::initialize_portaudio()
 }
 
 bool portaudio_manager::reg(portaudio_wav_player *player,
-                                 PaDeviceIndex device)
+        PaDeviceIndex device)
 {
     if (player == NULL || !get_initialized())
         return false;

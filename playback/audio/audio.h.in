@@ -2,14 +2,10 @@
 
 #define PLAY_6T2G7RPS
 
-/* TODO:
- * alter speed
- */
-
 #define _LINUX // FIXME
 #include "../../memory/memory.h"
+#include "../../decode/decoder.h"
 
-#include <cstdio>
 #include <exception>
 
 class playbackend_except : public std::exception {
@@ -20,24 +16,62 @@ public:
 	}
 };
 
+class output_device {
+protected:
+    output_device *next;
+public:
+    virtual ~output_device() { }
+    output_device() { next = NULL; }
+public:
+    virtual int         get_id(void) const                   = 0;
+    virtual const char *get_name(void) const                 = 0;
+    virtual double      get_default_sample_rate(void ) const = 0;
+    virtual int         get_max_channels(void) const         = 0;
+public:
+    const output_device *get_next() const { return next; }
+};
+
+class output_device_enumeration {
+public:
+    virtual ~output_device_enumeration();
+    output_device_enumeration();
+public:
+    virtual bool                    enumerate(void)         = 0;
+    virtual const output_device    *get_enumeration(void)   = 0;
+    virtual void                    free_enumeration(void)  = 0;
+};
+
 class play_wav {
 public:
 	play_wav(void) { }
 	virtual ~play_wav(void) { }
 public:
-	virtual void begin(void) = 0;
-	virtual void play(void) = 0;
-	virtual void pause(void) = 0;
-	virtual void toggle_pause(void) = 0;
-	virtual void stop(void) = 0;
-    virtual void seek(int) = 0;
+	virtual void begin(void) = 0; // begin/start playback
+	virtual void play(void) = 0; // unpause playback, not to be confuzed with begin()
+	virtual void pause(void) = 0; // pause playback
+	virtual void toggle_pause(void) = 0; // toggles play/pause
+	virtual void stop(void) = 0; // stop playback
+    virtual void seek(int bytes) = 0; // move the WAV frame pointer by `bytes` bytes
+public:
+    virtual bool get_playing(void) const = 0;
+    virtual bool get_paused(void) const = 0;
 public:
 	play_wav &operator=(const play_wav &) = delete;
 	play_wav(const play_wav &) = delete;
 };
 
-#include @AUDIO_INCLUDE_PATH@
+namespace audio { 
+    // All these functions must be implemented in the include path below
+    bool initialize();
+    bool terminate();
+}
 
-extern "C" play_wav *get_player(FILE *);
+#include @AUDIO_INCLUDE_PATH@ // value is gotten from cmake
+
+extern "C" play_wav *get_player_file(FILE *source, decoder *decoder,
+                                     int playback_device_index);
+
+extern "C" play_wav *get_player_memory(memory_ref &source, decoder *decoder,
+                                int playback_device_index);
 
 #endif /* end of include guard: PLAY_6T2G7RPS */

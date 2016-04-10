@@ -1,6 +1,7 @@
 #include "audio.h"
 
 #include <cstring>
+#include <math.h>
 
 namespace audio {
     portaudio_manager device_manager;
@@ -182,7 +183,7 @@ void portaudio_wav_player::toggle_pause()
 
     if (get_flag(state_paused))
         play();
-    else 
+    else
         pause();
 }
 
@@ -224,6 +225,7 @@ long portaudio_wav_player::fill_buffer(char **buffer,
                                        size_t frame_count)
 {
     frames_last_read = read_stream.fill_buffer(buffer, frame_count);
+
     return frames_last_read;
 }
 

@@ -9,7 +9,7 @@
 #include <portaudio.h>
 #include <exception>
 
-#define FRAMES_PER_BUFFER 0x10000
+#define FRAMES_PER_BUFFER 100
 
 typedef enum {
     state_none        = 0,

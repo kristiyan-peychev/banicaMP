@@ -16,7 +16,10 @@ int main(int argc, const char *argv[]) {
         itr = itr->get_next();
     }
 
-    FILE *source = fopen("/home/kawaguchi/TheFatRat - Unity.wav", "r");
+    FILE *source = fopen("/home/kawaguchi/Windfall_decoded.wav", "rw+");
+    if (source == NULL) {
+        exit(1);
+    }
     portaudio_wav_player player(source, 2);
     player.initialize();
     player.begin();
@@ -27,3 +30,4 @@ int main(int argc, const char *argv[]) {
     printf("Portaudio terminated\n");
 return 0;
 }
+

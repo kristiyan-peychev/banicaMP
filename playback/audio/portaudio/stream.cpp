@@ -8,27 +8,32 @@
 
 stream::buffer::~buffer()
 {
-    if (NULL != data)
+    if (NULL != data && del)
         delete[] data;
 }
 
-stream::buffer::buffer(size_t alloc)
-: data(new char [alloc])
-, size(alloc)
+stream::buffer::buffer()
+: data(NULL)
+, size(0)
+{ }
+
+stream::buffer::buffer(char **buff, size_t sz, bool delet)
+: data(*buff)
+, size(sz)
+, del(delet)
 { }
 
 stream::buffer &stream::buffer::operator=(const stream::buffer &other)
 {
-    if (&other == this)
+    if (this == &other)
         return *this;
 
-    if (NULL != data)
-        delete[] data;
+    if (del)
+        delete data;
 
+    data = other.data;
     size = other.size;
-    data = new char [other.size];
-    memcpy(data, other.data, size);
-
+    del = other.del;
     return *this;
 }
 
@@ -39,21 +44,22 @@ stream::buffer_manager::~buffer_manager()
     prefill_thread.join();
 }
 
-stream::buffer_manager::buffer_manager(stream * st, size_t num_buffers)
+stream::buffer_manager::buffer_manager(stream *st, size_t num_buffers)
 : buffers(num_buffers)
 , read(st)
 , lock(ATOMIC_FLAG_INIT)
 , next_fill_index(0)
 , die_flag(false)
 {
-    buffer tmp(FRAMES_PER_BUFFER);
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < buffers.size(); ++i)
     {
-        buffers[i] = tmp;
+        char *val = new char [FRAMES_PER_BUFFER];
+        buffers[i] = buffer(&val, FRAMES_PER_BUFFER);
         read->fill_buffer(buffers[i], FRAMES_PER_BUFFER);
+        buffers[i].del = true;
     }
 
-    lock.test_and_set(); // lock the thread on its spinlock
+    lock.test_and_set(std::memory_order_acquire); // lock the thread on its spinlock
     prefill_thread = std::thread(&stream::buffer_manager::prebuffer, this);
 }
 
@@ -69,9 +75,7 @@ void stream::buffer_manager::fill_buffer(char **buf, size_t size)
         return;
 
     memcpy(*buf, buffers[next_fill_index].data, size);
-    fprintf(stderr, "Releasing lock\n");
     lock.clear(std::memory_order_release);
-    fprintf(stderr, "Released lock\n");
 }
 
 // fill whenever one of the buffers is read
@@ -79,17 +83,15 @@ void stream::buffer_manager::prebuffer()
 {
     size_t last_read = 0;
     do {
-        fprintf(stderr, "l0ck\n");
         spinlock(lock);
 
         if (die_flag)
             return;
 
-        read->fill_buffer(buffers[next_fill_index], buffers.size());
-        fprintf(stderr, "Filled @#%d\n", next_fill_index);
+        read->fill_buffer(buffers[next_fill_index], buffers[next_fill_index].size);
         last_read = buffers[next_fill_index].size;
         next_fill_index = (next_fill_index + 1) % buffers.size();
-    } while(last_read > 0);
+    } while(last_read > 0 && !die_flag);
 }
 
 stream::~stream()
@@ -106,7 +108,7 @@ stream::stream()
 
 stream::stream(FILE *source, int prebuffer_num)
 : manager(this, prebuffer_num)
-, state(stream_state_none)
+, state(stream_state_file)
 , source_file(source)
 , source_memory(0)
 , source_fstream()
@@ -182,7 +184,7 @@ long stream::get_size()
 long stream::get_remaining()
 {
     long ret;
- 
+
     //std::lock_guard<std::mutex> guard(mutex);
     switch (state) {
     case stream_state_none:
@@ -217,38 +219,8 @@ long stream::fill_buffer(char **buf, unsigned long bytes)
     if (buf == NULL || *buf == NULL || bytes == 0)
         return -1;
 
-    long copy_size = bytes;
-    unsigned long remain = get_remaining();
-    if (remain < bytes)
-        copy_size = remain;
-
-    //std::lock_guard<std::mutex> guard(mutex);
-    switch (state) {
-    case stream_state_none:
-    break;
-    case stream_state_file:
-    {
-        buffer buff;
-        buff.data = *buf;
-        buff.size = fread(buff.data, 1, copy_size, source_file);
-        return buff.size;
-    }
-    break;
-    case stream_state_memory:
-    {
-        buffer buff;
-        buff.data = *buf;
-        manager.fill_buffer(buff);
-        return buff.size;
-    }
-    break;
-    case stream_state_fstream:
-        source_fstream.read(*buf, copy_size);
-        return source_fstream.gcount();
-    break;
-    }
-    
-    return -1; // should never be reached
+    manager.fill_buffer(buf, bytes);
+    return bytes;
 }
 
 long stream::seek(long bytes)
