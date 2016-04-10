@@ -43,7 +43,7 @@ public:
                          decoder *decoder = NULL,
                          int playback_device_index = -1,
                          double sample_rate = 44100.0f);
-    portaudio_wav_player(memory_ref source,
+    portaudio_wav_player(shared_memory source,
                          int channels,
                          decoder *decoder = NULL,
                          int playback_device_index = -1,

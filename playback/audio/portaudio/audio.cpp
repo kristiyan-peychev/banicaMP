@@ -58,7 +58,7 @@ portaudio_wav_player::portaudio_wav_player(FILE *source, int channels, decoder *
             Pa_GetDeviceInfo(device_index)->defaultLowOutputLatency;
 }
 
-portaudio_wav_player::portaudio_wav_player(memory_ref source, int channels, decoder *decoder,
+portaudio_wav_player::portaudio_wav_player(shared_memory source, int channels, decoder *decoder,
         int playback_device_index, double sample_rate)
 : channel_count(channels)
 , sample_rate(sample_rate)
