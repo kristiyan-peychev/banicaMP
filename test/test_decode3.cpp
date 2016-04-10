@@ -11,14 +11,14 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
 	FILE *f = fopen(argv[1], "r");
-    memory_ref mem(64000);
-    fprintf(stderr, "Initial memory capacity is %d bytes\n", mem.cap());
+    shared_memory mem = memory::alloc(0x1000);
+    fprintf(stderr, "Initial memory capacity is %d bytes\n", mem->cap());
 	decoder *what = get_decoder(f, ENC_MP3);
     what->decode(mem);
-    fprintf(stderr, "Final memory size is %d bytes\n", mem.cap());
+    fprintf(stderr, "Final memory size is %d bytes\n", mem->cap());
     if (argc == 3) {
         FILE *file = fopen(argv[2], "wb+");
-        fwrite(mem.begin(), 1, mem.cap(), file);
+        fwrite(mem->begin(), 1, mem->cap(), file);
     }
 return 0;
 }
