@@ -54,7 +54,7 @@ char * const _memory::end() const noexcept
 
 size_t _memory::cap() const noexcept
 {
-    return (size_t) (ending - size);
+    return (size_t) (ending - start);
 }
 
 size_t _memory::get_read_offset() const noexcept
@@ -67,7 +67,7 @@ size_t _memory::get_write_offset() const noexcept
     return (size_t) (current_position_write - start);
 }
 
-void _memory::write(const char *wr, size_t size) noexcept
+void _memory::write(const char *wr, size_t num_bytes) noexcept
 {
     if (size == 0)
         return;
@@ -75,24 +75,28 @@ void _memory::write(const char *wr, size_t size) noexcept
     assert(current_position_write != NULL);
     assert(wr != NULL);
 
-    if ((get_write_offset() + size) <= cap())
+    if (current_position_write + num_bytes >= ending)
         expand(cap()); // double the allocated size
 
-    assert(memmove(current_position_write, wr, size) != NULL);
-    current_position_write += size;
+    assert(memmove(current_position_write, wr, num_bytes) != NULL);
+    current_position_write += num_bytes;
 }
 
 long _memory::read(char **buffer, size_t num_bytes) noexcept
 {
     if (num_bytes == 0)
         return 0;
+    else if (num_bytes > (cap() - get_read_offset()))
+        num_bytes = cap() - get_read_offset();
 
     assert(current_position_read != NULL);
     assert(buffer != NULL);
     assert(*buffer != NULL);
 
-    assert(memmove(*buffer, current_position_read, num_bytes) != NULL);
-    current_position_write += size;
+    memmove(*buffer, current_position_read, num_bytes);
+    current_position_read += num_bytes;
+
+    return num_bytes;
 }
 
 void _memory::seek(ssize_t num_bytes, int mode) noexcept(false)
@@ -135,7 +139,31 @@ void _memory::seek(ssize_t num_bytes, int mode) noexcept(false)
     }
 }
 
+void _memory::expand(size_t with_size) noexcept
+{
+    assert(with_size != 0);
+
+    char *tmp;
+    size_t write_offset = get_write_offset();
+    size_t read_offset  = get_read_offset();
+
+    tmp = new char [size + with_size];
+    if (tmp == NULL)
+        return;
+
+    memmove(tmp, start, size);
+
+    std::swap(tmp, start);
+
+    delete[] tmp;
+
+    size += with_size;
+    ending = begin() + size;
+    current_position_write = begin() + write_offset;
+    current_position_read  = begin() + read_offset;
+}
+
 shared_memory memory::alloc(size_t size)
 {
-    return std::make_shared<_memory>(_memory(size));
+    return std::make_shared<_memory>(size);
 }

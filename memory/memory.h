@@ -29,7 +29,7 @@ public:
 public:
     void        seek(ssize_t num_bytes, int mode) noexcept(false); //mode is from enum seek_control
 public:
-    void expand(size_t) noexcept(false);
+    void expand(size_t with_size) noexcept;
 };
 
 typedef std::shared_ptr<_memory> shared_memory;
