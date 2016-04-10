@@ -10,201 +10,132 @@
 #include <exception>
 #include <new>
 #include <algorithm>
+#include <cassert>
 
-memory_ref::~memory_ref(void)
+_memory::~_memory()
 {
-    --mem->refs;
-    if ((mem->refs <= 0) && mem->start) {
-        delete[] mem->start;
-        delete[] mem;
-    }
+    if (start != NULL)
+        delete[] start;
+
+    start = current_position_write = current_position_read = ending = NULL;
+    size = 0;
 }
 
-memory_ref::memory_ref(size_t size) noexcept(false)
+_memory::_memory()
+: size(0)
+, start(NULL)
+, current_position_write(NULL)
+, current_position_read(NULL)
+, ending(NULL)
+{ }
+
+_memory::_memory(size_t size)
+: size(size)
+, start(NULL)
+, current_position_write(NULL)
+, current_position_read(NULL)
+, ending(NULL)
 {
-    mem                             = new memory_core;
-    mem->refs                       = 1;
-    mem->size                       = size;
-    mem->start                      = new char [size];
-    mem->current_position_write     = mem->start;
-    mem->current_position_read      = mem->start;
-    mem->ending                     = mem->start + size;
+    start = new char [size];
+    current_position_write = start;
+    current_position_read = start;
+    ending = (start + size);
 }
 
-memory_ref::memory_ref(memory_ref &ref)
+char *_memory::begin() noexcept
 {
-    if (ref.mem == NULL || ref.mem->refs <= 0)
-        throw memory::broken_ref();
-    mem = ref.mem;
-    ++mem->refs;
+    return start;
 }
 
-memory_ref &memory_ref::operator=(memory_ref &ref)
+char * const _memory::end() const noexcept
 {
-    if (mem != NULL && ref.mem != NULL)
-    {
-        if (--mem->refs == 0)
-            delete[] mem;
-        mem = ref.mem;
-        ++mem->refs;
-    }
+    return ending;
 }
 
-char *memory_ref::begin(void) noexcept
+size_t _memory::cap() const noexcept
 {
-    is_valid_throw();
-    return mem->start;
+    return (size_t) (ending - size);
 }
 
-char *const memory_ref::end(void) const noexcept
+size_t _memory::get_read_offset() const noexcept
 {
-    is_valid_throw();
-    return mem->ending;
+    return (size_t) (current_position_read - start);
 }
 
-size_t memory_ref::cap(void) const noexcept
+size_t _memory::get_write_offset() const noexcept
 {
-    is_valid_throw();
-    return mem->size;
+    return (size_t) (current_position_write - start);
 }
 
-size_t memory_ref::get_current_offset(void) const noexcept
+void _memory::write(const char *wr, size_t size) noexcept
 {
-    is_valid_throw();
-    return mem->current_position_read - mem->start;
+    if (size == 0)
+        return;
+
+    assert(current_position_write != NULL);
+    assert(wr != NULL);
+
+    if ((get_write_offset() + size) <= cap())
+        expand(cap()); // double the allocated size
+
+    assert(memmove(current_position_write, wr, size) != NULL);
+    current_position_write += size;
 }
 
-char memory_ref::operator[](size_t index) noexcept(false)
+long _memory::read(char **buffer, size_t num_bytes) noexcept
 {
-    is_valid_throw();
-    if (cap() == 0)
-        throw memory::null_allocation();
-    if (index > (cap() - 1))
-        throw memory::out_of_range();
+    if (num_bytes == 0)
+        return 0;
 
-    return *(mem->start + index);
+    assert(current_position_read != NULL);
+    assert(buffer != NULL);
+    assert(*buffer != NULL);
+
+    assert(memmove(*buffer, current_position_read, num_bytes) != NULL);
+    current_position_write += size;
 }
 
-void memory_ref::write(const char *data, size_t write_size) noexcept(false)
+void _memory::seek(ssize_t num_bytes, int mode) noexcept(false)
 {
-    is_valid_throw();
-    if (cap() == 0)
-        throw memory::null_allocation();
-    if ((mem->current_position_write + write_size) >= end())
-        throw memory::write_failed();
-
-    if (memmove(mem->current_position_write, data, write_size) == NULL)
-        throw memory::write_failed();
-    mem->current_position_write = mem->current_position_write + write_size;
-}
-
-const char *memory_ref::read(size_t index, size_t num_bytes) noexcept(false)
-{
-    is_valid_throw();
-    if (cap() == 0)
-        throw memory::null_allocation();
-    if ((index + num_bytes) > (cap() - 1))
-        throw memory::out_of_range();
-    if (index > (cap() - 1))
-        throw memory::out_of_range();
-
-    return (mem->start + index);
-}
-
-char *memory_ref::read(size_t num_bytes) noexcept(false)
-{
-    is_valid_throw();
-    if (cap() == 0)
-        throw memory::null_allocation();
-    if ((((size_t) (mem->current_position_read - mem->start)) + num_bytes) > (cap() - 1))
-        throw memory::out_of_range();
-    
-    char *ret = mem->current_position_read + num_bytes;
-    mem->current_position_read = mem->current_position_read + num_bytes;
-    return ret;
-}
-
-long memory_ref::read(char **buffer, size_t num_bytes) noexcept(false)
-{
-    is_valid_throw();
-
-    char *where;
-    long ret;
-    where = (char *) memcpy(*buffer, read(num_bytes), num_bytes);
-
-    ret = (long) where - (long) mem->current_position_read;
-    mem->current_position_read += ret;
-
-    return ret;
-}
-
-void memory_ref::expand(size_t add) noexcept(false)
-{
-    is_valid_throw();
-    if (cap() == 0 || add <= 0)
-        throw memory::null_allocation();
- 
-    char *tmp = new char [mem->size + add];
-    if (memcpy(tmp, mem->start, mem->size) == NULL)
-        throw memory::expand_failed();
-
-    size_t curpos_offset = mem->current_position_write - mem->start;
-    std::swap(tmp, mem->start);
-    mem->current_position_write = mem->start + curpos_offset;
-    mem->size += add;
-    mem->ending = mem->start + mem->size;
-}
-
-void memory_ref::seek(ssize_t num_bytes, int mode) noexcept(false)
-{
-    is_valid_throw();
-
     switch(mode) {
     case seek_none:
     break;
     case seek_rd_current:
-        mem->current_position_read += num_bytes;
+        current_position_read += num_bytes;
     break;
     case seek_wr_current:
-        mem->current_position_write += num_bytes;
+        current_position_write += num_bytes;
     break;
     case seek_rd_begin:
         if (num_bytes < 0)
             throw memory::out_of_range();
 
-        mem->current_position_read = begin() + num_bytes;
+        current_position_read = begin() + num_bytes;
     break;
     case seek_wr_begin:
         if (num_bytes < 0)
             throw memory::out_of_range();
 
-        mem->current_position_write = begin() + num_bytes;
+        current_position_write = begin() + num_bytes;
     break;
     case seek_rd_end:
         if (num_bytes > 0)
             throw memory::out_of_range();
 
-        mem->current_position_read = end() + num_bytes;
+        current_position_read = end() + num_bytes;
     break;
     case seek_wr_end:
         if (num_bytes > 0)
             throw memory::out_of_range();
 
-        mem->current_position_write = end() + num_bytes;
+        current_position_write = end() + num_bytes;
     break;
     default:
     break;
     }
 }
 
-bool memory_ref::is_valid() const noexcept
+shared_memory memory::alloc(size_t size)
 {
-    return (mem != NULL);
+    return std::make_shared<_memory>(_memory(size));
 }
-
-void memory_ref::is_valid_throw() const noexcept(false)
-{
-    if (!is_valid())
-        throw memory::broken_ref();
-}
-
