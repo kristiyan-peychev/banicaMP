@@ -13,7 +13,7 @@ public:
     decoder() { }
     virtual ~decoder(void) { }
     virtual bool decode(FILE *output) = 0;
-    virtual bool decode(memory_ref &output) = 0;
+    virtual bool decode(shared_memory output) = 0;
 };
 
 namespace decode {

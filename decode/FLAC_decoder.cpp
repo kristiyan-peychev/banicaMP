@@ -77,11 +77,9 @@ flac_decoder::~flac_decoder(void) { }
             for (; i < frame->header.blocksize; i++) {
                 buf[k++] = (FLAC__int16) buffer[0][i];
                 buf[k++] = (FLAC__int16) buffer[1][i];
-                out_mem.write((char *) buf, 2 * sizeof(*buf));
+                out_mem->write((char *) buf, 2 * sizeof(*buf));
             }
             break;
-        } catch (memory::write_failed &write_except) {
-            out_mem.expand(out_mem.cap() * 2); // FIXME
         } catch (...) {
             return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
         }
@@ -164,7 +162,7 @@ bool flac_decoder::decode(FILE *outf)
     return process_until_end_of_stream();
 }
 
-bool flac_decoder::decode(memory_ref &mem)
+bool flac_decoder::decode(shared_memory mem)
 {
     out_mem = mem;
     memflg = true;

@@ -86,13 +86,9 @@ static enum mad_flow mem_output(void *data,
                 tmp[2] = (sample >> 0) & 0xff;
                 tmp[3] = (sample >> 8) & 0xff;
 
-                context->out_mem.write((const char *) tmp, 4);
+                context->out_mem->write((const char *) tmp, 4);
             }
             break;
-        } catch (memory::write_failed &write_exept) {
-            context->out_mem.expand(context->out_mem.cap() * 2);
-        } catch (memory::out_of_range &range_except) {
-            context->out_mem.expand(context->out_mem.cap() * 2);
         } catch (...) {
             fprintf(stderr, "ERROR: FATAL EXCEPTION THROWN\n");
             return MAD_FLOW_STOP;
@@ -143,7 +139,7 @@ bool MPEG_decoder::decode(FILE *lol)
 {
     buffer buf;
     struct mad_decoder dec;
-    memory_ref empty_mem(0);
+    shared_memory empty_mem(0);
     uberbuff context(&buf, lol, file, empty_mem);
     int result;
 
@@ -162,7 +158,7 @@ bool MPEG_decoder::decode(FILE *lol)
     return static_cast<bool>(!!result);
 }
 
-bool MPEG_decoder::decode(memory_ref &m)
+bool MPEG_decoder::decode(shared_memory m)
 {
     struct mad_decoder dec;
     buffer buf;

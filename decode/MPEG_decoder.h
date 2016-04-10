@@ -13,8 +13,8 @@ struct buffer {
 struct uberbuff {
     buffer *buf;
     FILE *f, *rd;
-    memory_ref out_mem;
-    uberbuff(buffer *b, FILE *ff, FILE *sf, memory_ref &mem) :
+    shared_memory out_mem;
+    uberbuff(buffer *b, FILE *ff, FILE *sf, shared_memory mem) :
         buf(b), f(ff), rd(sf), out_mem(mem) { }
 };
 
@@ -24,7 +24,7 @@ public:
     MPEG_decoder(FILE *);
     ~MPEG_decoder(void);
     bool decode(FILE *);
-    bool decode(memory_ref &);
+    bool decode(shared_memory);
 public:
     MPEG_decoder(void)                              = delete;
     MPEG_decoder &operator=(const MPEG_decoder &)   = delete;
