@@ -31,9 +31,9 @@ void event::execute(const vector<callback> &event_list,
         return;
 
     std::thread th;
-    for (size_t i = 0; i < event_list.size(); ++i) {
-        event_list[i].context = context;
-        th = std::thread(event_list[i].on_event);
+    for (auto itr : event_list) {
+        itr.context = context;
+        th = std::thread(itr.on_event);
         th.detach();
     }
 }
