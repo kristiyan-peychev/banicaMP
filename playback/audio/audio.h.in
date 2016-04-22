@@ -71,7 +71,7 @@ namespace audio {
 extern "C" play_wav *get_player_file(FILE *source, decoder *decoder,
                                      int playback_device_index);
 
-extern "C" play_wav *get_player_memory(memory_ref &source, decoder *decoder,
+extern "C" play_wav *get_player_memory(shared_memory &source, decoder *decoder,
                                 int playback_device_index);
 
 #endif /* end of include guard: PLAY_6T2G7RPS */
