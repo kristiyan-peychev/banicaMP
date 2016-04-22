@@ -79,37 +79,37 @@ namespace audio {
     class exception : public std::exception { };
 
     class initialization_failed : public exception {
-        const char *what() noexcept {
+        const char *what()  const noexcept  {
             return "PortAudio not initialized";
         }
     };
 
     class playback_could_not_start : public exception {
-        const char *what() noexcept {
+        const char *what()  const noexcept  {
             return "PortAudio stream failed to start";
         }
     };
 
     class playback_could_not_stop : public exception {
-        const char *what() noexcept {
+        const char *what()  const noexcept  {
             return "PortAudio stream failed to stop";
         }
     };
 
     class double_initialization : public exception {
-        const char *what() noexcept {
+        const char *what()  const noexcept  {
             return "PortAudio device manager singleton attempt to make a second instance";
         }
     };
 
     class player_failed_to_register : public exception {
-        const char *what() noexcept {
+        const char *what()  const noexcept  {
             return "Player failed to register with the portaudio device manager";
         }
     };
 
     class wav_player_not_initialized : public exception {
-        const char *what() noexcept {
+        const char *what()  const noexcept  {
             return "Portaudio wav player was not initialized";
         }
     };
