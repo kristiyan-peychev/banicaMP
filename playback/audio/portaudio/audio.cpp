@@ -16,7 +16,7 @@ static int pa_stream_callback(const void *input_buffer,
 {
     (void) input_buffer; (void) time_info; (void) status_flags;
 
-    portaudio_wav_player *player = static_cast<portaudio_wav_player *>(context);
+    portaudio_wav_player *player = reinterpret_cast<portaudio_wav_player *>(context);
     player->fill_buffer((char **) &output_buffer, frames_per_buffer);
 
     return 0;
@@ -125,7 +125,7 @@ void portaudio_wav_player::initialize()
                                   NULL,
                                   &output_stream_params,
                                   sample_rate,
-                                  frames_per_buffer,
+                                  0,
                                   paNoFlag,
                                   pa_stream_callback,
                                   (void *) this);
@@ -189,6 +189,9 @@ void portaudio_wav_player::toggle_pause()
 
 void portaudio_wav_player::stop()
 {
+    if (get_flag(state_stopped))
+        return;
+
     global_error = Pa_StopStream(main_stream);
 
     if (global_error != paNoError) {
@@ -224,7 +227,8 @@ bool portaudio_wav_player::get_flag(int mask) const
 long portaudio_wav_player::fill_buffer(char **buffer,
                                        size_t frame_count)
 {
-    frames_last_read = read_stream.fill_buffer(buffer, frame_count);
+    size_t bytes = frame_count * channel_count * 2;
+    frames_last_read = read_stream.fill_buffer(buffer, bytes);
 
     return frames_last_read;
 }
