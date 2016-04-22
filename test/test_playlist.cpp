@@ -50,8 +50,8 @@ int main(int argc, char *argv[]){
             } else if(!strcmp(command, "quit")) {
                 break;
             }
-        } catch(...){
-            printf("Exception\n");
+        } catch(std::exception &e){
+            printf("Exception thrown: %s\n", e.what());
             p.stop_song();
         }
     }
