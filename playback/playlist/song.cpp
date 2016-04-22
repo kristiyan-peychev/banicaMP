@@ -38,7 +38,7 @@ void song::load_song()
 
     //load wav player
     if(player == NULL){
-       player = get_player(decoded_file);
+       player = get_player_file(decoded_file, dec, -1);
     }
 }
 

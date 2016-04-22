@@ -28,6 +28,8 @@ void playlist::decoded_song_handler::push(song* s) noexcept
 playlist::playlist(const char* path, bool is_playlist): list(), size(0), curr_song(0),
     queue_pos(0), playing_now(false), repeat(false), shuffle(false)
 {
+    audio::initialize();
+
     if(path){
         if(is_playlist)
             load(path);
@@ -36,17 +38,10 @@ playlist::playlist(const char* path, bool is_playlist): list(), size(0), curr_so
     }
 }
 
-#if 0
-playlist::playlist(): list(), size(0), curr_song(0),
-    queue_pos(0), playing_now(false), repeat(false), shuffle(false)
-
-{
-}
-#endif
-
 playlist::playlist(): playing_now(false), repeat(false), shuffle(false),
         paused(true), queue_pos(0), pq_pos(0)
 {
+    audio::initialize();
 }
 
 playlist::~playlist()
@@ -54,6 +49,8 @@ playlist::~playlist()
     size_t size = list.size();
     for(int i = 0; i < size; i++)
         delete list[i];
+
+    audio::terminate();
 }
 
 void playlist::generate(const char* path)
