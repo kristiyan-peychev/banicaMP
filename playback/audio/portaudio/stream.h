@@ -19,34 +19,6 @@ typedef enum {
 
 class stream {
 public:
-    struct buffer {
-        char *data;
-        size_t size;
-        bool del;
-    public:
-       ~buffer();
-        buffer();
-        buffer(char **buff, size_t sz, bool delet = false);
-        buffer &operator=(const buffer &other);
-    };
-
-    class buffer_manager {
-        std::vector<buffer> buffers;
-        stream             *read;
-        std::atomic_flag    lock;
-        std::thread         prefill_thread;
-        size_t              next_fill_index;
-        bool                die_flag;
-    public:
-       ~buffer_manager();
-        buffer_manager(stream *st, size_t num_buffers = 4);
-    public:
-        void fill_buffer(buffer &buf);
-        void fill_buffer(char **buf, size_t size);
-    protected:
-        void prebuffer();
-    } manager;
-
     stream_state state;
     FILE           *source_file;
     shared_memory   source_memory;
@@ -72,7 +44,7 @@ public:
     long seek(long bytes);
     long rewind();
 //protected:
-    void fill_buffer(buffer &buf, size_t bytes);
+    //void fill_buffer(buffer &buf, size_t bytes);
 public:
     friend stream &operator<<(stream &st, long next_read_bytes);
     friend stream &operator>>(stream &st, char **buffer_to_fill);

@@ -6,116 +6,25 @@
 
 #define spinlock(x) do { } while(x.test_and_set(std::memory_order_acquire))
 
-stream::buffer::~buffer()
-{
-    if (NULL != data && del)
-        delete[] data;
-}
-
-stream::buffer::buffer()
-: data(NULL)
-, size(0)
-{ }
-
-stream::buffer::buffer(char **buff, size_t sz, bool delet)
-: data(*buff)
-, size(sz)
-, del(delet)
-{ }
-
-stream::buffer &stream::buffer::operator=(const stream::buffer &other)
-{
-    if (this == &other)
-        return *this;
-
-    if (del)
-        delete data;
-
-    data = other.data;
-    size = other.size;
-    del = other.del;
-    return *this;
-}
-
-stream::buffer_manager::~buffer_manager()
-{
-    die_flag = true; // kill the thread
-    lock.clear(std::memory_order_release);
-    prefill_thread.join();
-}
-
-stream::buffer_manager::buffer_manager(stream *st, size_t num_buffers)
-: buffers(num_buffers)
-, read(st)
-, lock(ATOMIC_FLAG_INIT)
-, next_fill_index(0)
-, die_flag(false)
-{
-    for (int i = 0; i < buffers.size(); ++i)
-    {
-        char *val = new char [FRAMES_PER_BUFFER];
-        buffers[i] = buffer(&val, FRAMES_PER_BUFFER);
-        read->fill_buffer(buffers[i], FRAMES_PER_BUFFER);
-        buffers[i].del = true;
-    }
-
-    lock.test_and_set(std::memory_order_acquire); // lock the thread on its spinlock
-    prefill_thread = std::thread(&stream::buffer_manager::prebuffer, this);
-}
-
-void stream::buffer_manager::fill_buffer(buffer &buf)
-{
-    buf = buffers[next_fill_index];
-    lock.clear(std::memory_order_release);
-}
-
-void stream::buffer_manager::fill_buffer(char **buf, size_t size)
-{
-    if (buf == NULL || *buf == NULL || size == 0)
-        return;
-
-    memcpy(*buf, buffers[next_fill_index].data, size);
-    lock.clear(std::memory_order_release);
-}
-
-// fill whenever one of the buffers is read
-void stream::buffer_manager::prebuffer()
-{
-    size_t last_read = 0;
-    do {
-        spinlock(lock);
-
-        if (die_flag)
-            return;
-
-        read->fill_buffer(buffers[next_fill_index], buffers[next_fill_index].size);
-        last_read = buffers[next_fill_index].size;
-        next_fill_index = (next_fill_index + 1) % buffers.size();
-    } while(last_read > 0 && !die_flag);
-}
-
 stream::~stream()
 { }
 
 stream::stream()
-: manager(this)
-, state(stream_state_none)
+: state(stream_state_none)
 , source_file(NULL)
 , source_fstream()
 , next_read_size(0)
 { }
 
 stream::stream(FILE *source, int prebuffer_num)
-: manager(this, prebuffer_num)
-, state(stream_state_file)
+: state(stream_state_file)
 , source_file(source)
 , source_fstream()
 , next_read_size(0)
 { }
 
 stream::stream(shared_memory source, int prebuffer_num)
-: manager(this, prebuffer_num)
-, state(stream_state_memory)
+: state(stream_state_memory)
 , source_file(NULL)
 , source_memory(source)
 , source_fstream()
@@ -123,8 +32,7 @@ stream::stream(shared_memory source, int prebuffer_num)
 { }
 
 stream::stream(std::fstream &&source, int prebuffer_num)
-: manager(this, prebuffer_num)
-, state(stream_state_fstream)
+: state(stream_state_fstream)
 , source_file(NULL)
 , source_memory(0)
 , source_fstream(std::move(source))
@@ -143,7 +51,7 @@ bool stream::get_flag(int mask) const
 
 long stream::size()
 {
-    long ret;
+    long ret = 0;
 
     std::lock_guard<std::mutex> guard(mutex);
     switch (state) {
@@ -181,7 +89,7 @@ long stream::get_size()
 
 long stream::get_remaining()
 {
-    long ret;
+    long ret = 0;
 
     //std::lock_guard<std::mutex> guard(mutex);
     switch (state) {
@@ -217,8 +125,29 @@ long stream::fill_buffer(char **buf, unsigned long bytes)
     if (buf == NULL || *buf == NULL || bytes == 0)
         return -1;
 
-    manager.fill_buffer(buf, bytes);
-    return bytes;
+    long copy_size = bytes;
+    long size = 0;
+    unsigned long remain = get_remaining();
+    if (remain < bytes)
+        copy_size = remain;
+
+    //std::lock_guard<std::mutex> guard(mutex);
+    switch (state) {
+    case stream_state_none:
+        return 0;
+    break;
+    case stream_state_file:
+        size = fread(*buf, 1, copy_size, source_file);
+    break;
+    case stream_state_memory:
+        size = source_memory->read(buf, copy_size);
+    break;
+    case stream_state_fstream:
+        source_fstream.read(*buf, copy_size);
+        size = source_fstream.gcount();
+    break;
+    }
+    return size;
 }
 
 long stream::seek(long bytes)
@@ -274,31 +203,6 @@ long stream::rewind()
     }
 
     return 0;
-}
-
-void stream::fill_buffer(buffer &buf, size_t bytes)
-{
-    long copy_size = bytes;
-    unsigned long remain = get_remaining();
-    if (remain < bytes)
-        copy_size = remain;
-
-    //std::lock_guard<std::mutex> guard(mutex);
-    switch (state) {
-    case stream_state_none:
-        return;
-    break;
-    case stream_state_file:
-        buf.size = fread(buf.data, 1, copy_size, source_file);
-    break;
-    case stream_state_memory:
-        buf.size = source_memory->read(&buf.data, copy_size);
-    break;
-    case stream_state_fstream:
-        source_fstream.read(buf.data, copy_size);
-        buf.size = source_fstream.gcount();
-    break;
-    }
 }
 
 stream &operator<<(stream &st, long next_read_bytes)
