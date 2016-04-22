@@ -23,7 +23,8 @@ int main(int argc, const char *argv[]) {
     portaudio_wav_player player(source, 2);
     player.initialize();
     player.begin();
-    Pa_Sleep(50*1000);
+    Pa_Sleep(10*1000);
+    player.stop();
 
     printf("Terminating portaudio\n");
     audio::terminate();
