@@ -60,7 +60,7 @@ public:
 	play_wav(const play_wav &) = delete;
 };
 
-namespace audio { 
+namespace audio {
     // All these functions must be implemented in the include path below
     bool initialize();
     bool terminate();
@@ -71,7 +71,7 @@ namespace audio {
 extern "C" play_wav *get_player_file(FILE *source, decoder *decoder,
                                      int playback_device_index);
 
-extern "C" play_wav *get_player_memory(shared_memory &source, decoder *decoder,
-                                int playback_device_index);
+extern "C" play_wav *get_player_memory(shared_memory source, decoder *decoder,
+                                     int playback_device_index);
 
 #endif /* end of include guard: PLAY_6T2G7RPS */
