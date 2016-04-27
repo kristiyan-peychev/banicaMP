@@ -43,9 +43,11 @@ test/[^.]*
 build/*
 playback/build/*
 playback/audio/build/*
+playback/audio/audio.h
 playback/audio/linux/play.h
 playback/audio/linux/build/*
 playback/audio/windows/build/*
+playback/audio/portaudio/build/*
 playback/playlist/build/*
 decode/build/*
 memory/build/*
