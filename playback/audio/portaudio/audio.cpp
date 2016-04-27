@@ -243,3 +243,22 @@ bool audio::terminate()
     return device_manager.terminate_portaudio();
 }
 
+extern "C" play_wav *get_player_file(FILE *source, decoder *decoder,
+                                     int playback_device_index)
+{
+    portaudio_wav_player *ret = new portaudio_wav_player(source, 2, decoder,
+                                                         playback_device_index);
+    ret->initialize();
+
+    return ret;
+}
+
+extern "C" play_wav *get_player_memory(shared_memory source, decoder *decoder,
+                                       int playback_device_index)
+{
+    portaudio_wav_player *ret = new portaudio_wav_player(source, 2, decoder,
+                                                         playback_device_index);
+    ret->initialize();
+
+    return ret;
+}
