@@ -6,13 +6,20 @@
 #include <exception>
 #include <stdexcept>
 #include <memory>
+#include <mutex>
+#include <condition_variable>
 
 class _memory {
+private:
     size_t   size;
     char    *start;
     char    *current_position_write;
     char    *current_position_read;
     char    *ending;
+protected:
+    bool        blocking_read;
+    std::mutex  read_mutex;
+    std::condition_variable m_cv;
 public:
    ~_memory();
     _memory();
@@ -29,7 +36,9 @@ public:
 public:
     void        seek(ssize_t num_bytes, int mode) noexcept(false); //mode is from enum seek_control
 public:
-    void expand(size_t with_size) noexcept;
+    void        expand(size_t with_size) noexcept;
+public:
+    void        enable_blocking_read(bool block) noexcept;
 };
 
 typedef std::shared_ptr<_memory> shared_memory;

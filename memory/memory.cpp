@@ -80,6 +80,7 @@ void _memory::write(const char *wr, size_t num_bytes) noexcept
 
     assert(memmove(current_position_write, wr, num_bytes) != NULL);
     current_position_write += num_bytes;
+    m_cv.notify_one();
 }
 
 long _memory::read(char **buffer, size_t num_bytes) noexcept
@@ -92,6 +93,16 @@ long _memory::read(char **buffer, size_t num_bytes) noexcept
     assert(current_position_read != NULL);
     assert(buffer != NULL);
     assert(*buffer != NULL);
+
+    if (blocking_read && (get_read_offset() + num_bytes) >= get_write_offset()) {
+        std::unique_lock<std::mutex> lock(read_mutex);
+        m_cv.wait(lock,
+                  [this, num_bytes]()
+                  {
+                      return ((get_read_offset() + num_bytes) <
+                               get_write_offset());
+                  });
+    }
 
     memmove(*buffer, current_position_read, num_bytes);
     current_position_read += num_bytes;
@@ -161,6 +172,11 @@ void _memory::expand(size_t with_size) noexcept
     ending = begin() + size;
     current_position_write = begin() + write_offset;
     current_position_read  = begin() + read_offset;
+}
+
+void _memory::enable_blocking_read(bool block) noexcept
+{
+    blocking_read = block;
 }
 
 shared_memory memory::alloc(size_t size)
