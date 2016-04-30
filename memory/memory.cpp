@@ -75,6 +75,13 @@ void _memory::write(const char *wr, size_t num_bytes) noexcept
     assert(current_position_write != NULL);
     assert(wr != NULL);
 
+    std::unique_lock<std::mutex> expand_lock(expand_mutex);
+    expand_cond.wait(expand_lock,
+                     [this]()
+                     {
+                        return !is_expanding;
+                     });
+
     if (current_position_write + num_bytes >= ending)
         expand(cap()); // double the allocated size
 
@@ -94,7 +101,15 @@ long _memory::read(char **buffer, size_t num_bytes) noexcept
     assert(buffer != NULL);
     assert(*buffer != NULL);
 
+    std::unique_lock<std::mutex> expand_lock(expand_mutex);
+    expand_cond.wait(expand_lock,
+                     [this]()
+                     {
+                        return !is_expanding;
+                     });
+
     if (blocking_read && (get_read_offset() + num_bytes) >= get_write_offset()) {
+        fprintf(stderr, "LOCKED, BITCH\n");
         std::unique_lock<std::mutex> lock(read_mutex);
         m_cv.wait(lock,
                   [this, num_bytes]()
@@ -164,7 +179,13 @@ void _memory::expand(size_t with_size) noexcept
 
     memmove(tmp, start, size);
 
-    std::swap(tmp, start);
+    {
+        is_expanding = true;
+        std::lock_guard<std::mutex> lock(expand_mutex);
+        std::swap(tmp, start);
+        is_expanding = false;
+        expand_cond.notify_all();
+    }
 
     delete[] tmp;
 

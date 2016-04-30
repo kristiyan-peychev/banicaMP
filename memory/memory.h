@@ -16,6 +16,10 @@ private:
     char    *current_position_write;
     char    *current_position_read;
     char    *ending;
+private:
+    bool        is_expanding;
+    std::mutex  expand_mutex;
+    std::condition_variable expand_cond;
 protected:
     bool        blocking_read;
     std::mutex  read_mutex;
