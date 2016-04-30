@@ -27,6 +27,7 @@ _memory::_memory()
 , current_position_write(NULL)
 , current_position_read(NULL)
 , ending(NULL)
+, is_expanding(false)
 { }
 
 _memory::_memory(size_t size)
@@ -35,6 +36,7 @@ _memory::_memory(size_t size)
 , current_position_write(NULL)
 , current_position_read(NULL)
 , ending(NULL)
+, is_expanding(false)
 {
     start = new char [size];
     current_position_write = start;
@@ -75,12 +77,14 @@ void _memory::write(const char *wr, size_t num_bytes) noexcept
     assert(current_position_write != NULL);
     assert(wr != NULL);
 
+    if (is_expanding) {
     std::unique_lock<std::mutex> expand_lock(expand_mutex);
     expand_cond.wait(expand_lock,
                      [this]()
                      {
                         return !is_expanding;
                      });
+    }
 
     if (current_position_write + num_bytes >= ending)
         expand(cap()); // double the allocated size
@@ -101,15 +105,16 @@ long _memory::read(char **buffer, size_t num_bytes) noexcept
     assert(buffer != NULL);
     assert(*buffer != NULL);
 
-    std::unique_lock<std::mutex> expand_lock(expand_mutex);
-    expand_cond.wait(expand_lock,
-                     [this]()
-                     {
-                        return !is_expanding;
-                     });
+    if (is_expanding) {
+        std::unique_lock<std::mutex> expand_lock(expand_mutex);
+        expand_cond.wait(expand_lock,
+                [this]()
+                {
+                    return !is_expanding;
+                });
+    }
 
-    if (blocking_read && (get_read_offset() + num_bytes) >= get_write_offset()) {
-        fprintf(stderr, "LOCKED, BITCH\n");
+    if (blocking_read && ((get_read_offset() + num_bytes) >= get_write_offset())) {
         std::unique_lock<std::mutex> lock(read_mutex);
         m_cv.wait(lock,
                   [this, num_bytes]()
